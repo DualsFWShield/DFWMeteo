@@ -1,0 +1,574 @@
+import {
+  clamp,
+  compassPoint,
+  escapeHtml,
+  formatHour,
+  formatNumber,
+  formatPrecip,
+  formatPressure,
+  formatTemp,
+  formatTempValue,
+  formatVisibility,
+  formatWindValue,
+  percentile,
+  tempValue,
+  uvCategory,
+} from "./format.js";
+import { uiIcon } from "./icons.js";
+
+function linePath(points) {
+  const valid = points.filter((point) => point && Number.isFinite(point.y));
+  if (!valid.length) return "";
+  return valid
+    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+}
+
+function niceStep(rawStep) {
+  if (!Number.isFinite(rawStep) || rawStep <= 0) return 1;
+  const exponent = Math.floor(Math.log10(rawStep));
+  const fraction = rawStep / 10 ** exponent;
+  const nice = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  return nice * 10 ** exponent;
+}
+
+function areaPath(top, bottom) {
+  const topValid = top.filter((point) => Number.isFinite(point.y));
+  const bottomValid = bottom.filter((point) => Number.isFinite(point.y));
+  if (topValid.length < 2 || bottomValid.length < 2) return "";
+  return `${topValid
+    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ")} ${bottomValid
+    .reverse()
+    .map((point) => `L${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ")} Z`;
+}
+
+export function modelSpreadChart({
+  hourly,
+  sources,
+  metric = "temp",
+  locale = "en",
+  units = "metric",
+  translate,
+}) {
+  const points = hourly.slice(0, 24);
+  if (points.length < 2) return "";
+
+  const activeSources = sources.filter((source) => source.available);
+  const width = 780;
+  const height = 286;
+  const margin = { top: 20, right: 16, bottom: 38, left: 48 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const x = (index) => margin.left + (index / (points.length - 1)) * plotWidth;
+
+  const config = {
+    temp: {
+      unit: "°",
+      aria: translate("hourly.tempUnit"),
+      value: (source, index) =>
+        source.hourlyTemp[index] == null ? null : tempValue(source.hourlyTemp[index], units),
+      consensus: (point) => tempValue(point.temp, units),
+      formatTick: (value) => `${Math.round(value)}°`,
+      formatValue: (value) => formatTemp(value, units === "metric" ? "metric" : "metric", locale),
+    },
+    rain: {
+      unit: "%",
+      aria: translate("hourly.rainUnit"),
+      value: (source, index) => source.hourlyPrecipProbability[index] ?? null,
+      consensus: (point) => point.precipitationProbability,
+      formatTick: (value) => `${Math.round(value)}%`,
+      formatValue: (value) => (value == null ? "—" : `${Math.round(value)}%`),
+    },
+    wind: {
+      unit: units === "imperial" ? "mph" : "km/h",
+      aria: translate("hourly.windUnit"),
+      value: (source, index) =>
+        source.hourlyWind[index] == null ? null : tempValue(source.hourlyWind[index], units),
+      consensus: (point) => tempValue(point.windSpeed, units),
+      formatTick: (value) => `${Math.round(value)}`,
+      formatValue: (value) => `${Math.round(value)}`,
+    },
+  }[metric];
+
+  const allValues = [];
+  for (let index = 0; index < points.length; index += 1) {
+    const consensus = config.consensus(points[index]);
+    if (consensus != null) allValues.push(consensus);
+    for (const source of activeSources) {
+      const value = config.value(source, index);
+      if (value != null) allValues.push(value);
+    }
+  }
+
+  let min = Math.min(...allValues);
+  let max = Math.max(...allValues);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    min = 0;
+    max = 1;
+  }
+  if (metric === "rain") {
+    min = 0;
+    max = 100;
+  } else {
+    const padding = Math.max((max - min) * 0.18, metric === "temp" ? 0.8 : 2);
+    min -= padding;
+    max += padding;
+    if (metric === "wind") min = Math.max(0, min);
+    if (max - min < (metric === "temp" ? 3 : 4)) {
+      const middle = (min + max) / 2;
+      const half = metric === "temp" ? 1.6 : 3;
+      min = middle - half;
+      max = middle + half;
+    }
+  }
+  let tickValues;
+  if (metric === "rain") {
+    tickValues = [0, 25, 50, 75, 100];
+  } else {
+    const step = niceStep((max - min) / 4);
+    const roundedMin = Math.floor(min / step) * step;
+    const roundedMax = Math.ceil(max / step) * step;
+    const count = Math.max(2, Math.round((roundedMax - roundedMin) / step));
+    tickValues = Array.from({ length: count + 1 }, (_, index) => roundedMin + step * index);
+    min = roundedMin;
+    max = roundedMax;
+  }
+  const y = (value) =>
+    margin.top + ((max - value) / Math.max(0.0001, max - min)) * plotHeight;
+
+  const gridLines = tickValues
+    .map((value) => {
+      const top = y(value);
+      return `<line x1="${margin.left}" x2="${width - margin.right}" y1="${top.toFixed(1)}" y2="${top.toFixed(1)}" class="chart-grid"/>
+      <text x="${margin.left - 12}" y="${(top + 3.5).toFixed(1)}" text-anchor="end" class="chart-axis">${config.formatTick(value)}</text>`;
+    })
+    .join("");
+
+  const consensusValues = points.map((point) => config.consensus(point));
+  const sourceMatrix = points.map((_, index) =>
+    activeSources
+      .map((source) => config.value(source, index))
+      .filter((value) => value != null),
+  );
+  const bandTop = sourceMatrix.map((values, index) => ({
+    x: x(index),
+    y: y(percentile(values, 0.9) ?? consensusValues[index] ?? min),
+  }));
+  const bandBottom = sourceMatrix.map((values, index) => ({
+    x: x(index),
+    y: y(percentile(values, 0.1) ?? consensusValues[index] ?? min),
+  }));
+
+  const sourceLines = activeSources
+    .map((source) => {
+      const path = linePath(
+        points.map((_, index) => ({ x: x(index), y: y(config.value(source, index)) })),
+      );
+      return `<path d="${path}" fill="none" stroke="${source.color}" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" opacity=".62"/>`;
+    })
+    .join("");
+
+  const consensusPath = linePath(
+    consensusValues.map((value, index) => ({
+      x: x(index),
+      y: value == null ? null : y(value),
+    })),
+  );
+
+  const xLabels = points
+    .map((point, index) => {
+      if (index % 3 !== 0 && index !== points.length - 1) return "";
+      const label = index === 0 ? translate("common.now") : formatHour(point.time);
+      return `<text x="${x(index).toFixed(1)}" y="${height - 12}" text-anchor="${
+        index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"
+      }" class="chart-axis">${escapeHtml(label)}</text>`;
+    })
+    .join("");
+
+  const hits = points
+    .map((point, index) => {
+      const values = activeSources
+        .map((source) => ({ source, value: config.value(source, index) }))
+        .filter((item) => item.value != null);
+      const consensus = config.consensus(point);
+      const closest = [...values].sort(
+        (a, b) => Math.abs(a.value - (consensus ?? 0)) - Math.abs(b.value - (consensus ?? 0)),
+      )[0];
+      const minValue = Math.min(...values.map((item) => item.value));
+      const maxValue = Math.max(...values.map((item) => item.value));
+      const timeLabel = index === 0 ? translate("common.now") : formatHour(point.time);
+      const summary = `${timeLabel} · ${translate("hourly.consensus")} ${config.formatValue(
+        consensus,
+      )} · ${translate("hourly.range")} ${config.formatValue(minValue)}–${config.formatValue(
+        maxValue,
+      )}`;
+      return `<div class="chart-hit" tabindex="0" aria-label="${escapeHtml(
+        summary,
+      )}" style="left:${((x(index) - margin.left) / plotWidth) * 100}%;width:${(100 / (points.length - 1)).toFixed(
+        3,
+      )}%">
+        <span class="chart-cursor"></span>
+        <span class="chart-tip">
+          <span class="chart-tip-head"><b>${escapeHtml(timeLabel)}</b><i>${escapeHtml(
+            translate("hourly.consensus"),
+          )}</i></span>
+          <strong>${escapeHtml(config.formatValue(consensus))}</strong>
+          <span class="chart-tip-range">${escapeHtml(
+            translate("hourly.range"),
+          )} <em>${escapeHtml(config.formatValue(minValue))}–${escapeHtml(
+            config.formatValue(maxValue),
+          )}</em></span>
+          ${
+            closest
+              ? `<span class="chart-tip-source"><i style="background:${closest.source.color}"></i>${escapeHtml(
+                  closest.source.shortName,
+                )} ${escapeHtml(config.formatValue(closest.value))}</span>`
+              : ""
+          }
+        </span>
+      </div>`;
+    })
+    .join("");
+
+  return `<div class="chart-wrap">
+    <div class="chart-plot">
+      <svg class="model-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(
+        `${config.aria} · ${translate("hourly.chartAria")}`,
+      )}">
+        <defs>
+          <linearGradient id="chart-band" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#bfe9db" stop-opacity=".14"/>
+            <stop offset="100%" stop-color="#bfe9db" stop-opacity=".035"/>
+          </linearGradient>
+        </defs>
+        ${gridLines}
+        <path d="${areaPath(bandTop, bandBottom)}" fill="url(#chart-band)"/>
+        ${sourceLines}
+        <path d="${consensusPath}" fill="none" stroke="#f5f8fd" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="consensus-line"/>
+        <circle cx="${x(0)}" cy="${y(consensusValues[0] ?? min).toFixed(1)}" r="4" fill="#f5f8fd" stroke="#0b1220" stroke-width="2"/>
+        ${xLabels}
+      </svg>
+      <div class="chart-hits">${hits}</div>
+    </div>
+    <div class="chart-legend">
+      ${activeSources
+        .slice()
+        .sort((a, b) => b.influence - a.influence)
+        .map(
+          (source) =>
+            `<span class="legend-item" title="${escapeHtml(source.name)}"><i style="background:${
+              source.color
+            }"></i>${escapeHtml(source.shortName)} <small>${Math.round(
+              source.influence * 100,
+            )}%</small></span>`,
+        )
+        .join("")}
+      <span class="legend-item legend-consensus"><i></i>${escapeHtml(
+        translate("hourly.consensus"),
+      )}</span>
+    </div>
+  </div>`;
+}
+
+export function precipBars(hourly, units = "metric", count = 24) {
+  const points = hourly.slice(0, count);
+  const max = Math.max(...points.map((point) => point.precipitation ?? 0), 0.4);
+  return `<div class="precip-mini" aria-hidden="true">
+    ${points
+      .map((point, index) => {
+        const value = point.precipitation ?? 0;
+        const height = clamp((value / max) * 100, value > 0 ? 5 : 1.5, 100);
+        return `<span class="${value > 0.05 ? "is-wet" : ""}" style="--h:${height}%;--i:${index}" title="${escapeHtml(
+          formatPrecip(value, units, "en"),
+        )}"></span>`;
+      })
+      .join("")}
+  </div>`;
+}
+
+export function windCompass(direction, speed, gust, units, locale, translate) {
+  const rotation = Number(direction) || 0;
+  const cardinal = compassPoint(direction, locale);
+  return `<div class="compass-wrap">
+    <svg class="compass" viewBox="0 0 160 160" role="img" aria-label="${escapeHtml(
+      `${translate("details.wind")} ${formatWindValue(speed, units, locale)}`,
+    )}">
+      <circle cx="80" cy="80" r="66" fill="rgba(255,255,255,.018)" stroke="rgba(255,255,255,.09)"/>
+      <circle cx="80" cy="80" r="49" fill="none" stroke="rgba(255,255,255,.055)" stroke-dasharray="1 5"/>
+      <g class="compass-ticks">
+        ${Array.from({ length: 24 }, (_, index) => {
+          const angle = (index * 360) / 24;
+          const major = index % 6 === 0;
+          return `<line x1="80" y1="${major ? 18 : 21}" x2="80" y2="${major ? 27 : 25}" transform="rotate(${angle} 80 80)" stroke="rgba(255,255,255,${
+            major ? 0.35 : 0.13
+          })" stroke-width="${major ? 1.4 : 1}" stroke-linecap="round"/>`;
+        }).join("")}
+      </g>
+      <g class="compass-labels" fill="rgba(232,241,252,.72)" font-size="10" font-weight="600" text-anchor="middle">
+        <text x="80" y="42">N</text><text x="124" y="84">E</text><text x="80" y="128">S</text><text x="36" y="84">W</text>
+      </g>
+      <g transform="rotate(${rotation.toFixed(1)} 80 80)">
+        <path d="M80 34 87 55H73Z" fill="#bfe9db"/>
+        <path d="M80 126 73 105h14Z" fill="rgba(255,255,255,.2)"/>
+        <line x1="80" y1="52" x2="80" y2="108" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>
+      </g>
+      <circle cx="80" cy="80" r="4.2" fill="#0e1728" stroke="#bfe9db" stroke-width="1.5"/>
+      <text x="80" y="73" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8" letter-spacing="1.2">FROM</text>
+      <text x="80" y="96" text-anchor="middle" fill="#f4f7fc" font-size="14" font-weight="650">${escapeHtml(cardinal)}</text>
+    </svg>
+    <div class="compass-meta">
+      <div><span>${escapeHtml(translate("details.wind"))}</span><strong>${escapeHtml(
+        formatWindValue(speed, units, locale),
+      )} <small>${units === "imperial" ? "mph" : "km/h"}</small></strong></div>
+      <div><span>${escapeHtml(translate("details.gust"))}</span><strong>${escapeHtml(
+        formatWindValue(gust, units, locale),
+      )} <small>${units === "imperial" ? "mph" : "km/h"}</small></strong></div>
+    </div>
+  </div>`;
+}
+
+export function uvArc(value, max, locale, translate) {
+  const current = clamp(Number(value) || 0, 0, 12);
+  const peak = clamp(Number(max) || 0, 0, 12);
+  const angle = -90 + (current / 12) * 180;
+  const peakAngle = -90 + (peak / 12) * 180;
+  const category = uvCategory(current);
+  return `<div class="uv-gauge">
+    <svg viewBox="0 0 220 132" role="img" aria-label="${escapeHtml(
+      `${translate("details.uv")} ${formatNumber(current, locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })}`,
+    )}">
+      <defs>
+        <linearGradient id="uv-gradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#74d4a5"/>
+          <stop offset="38%" stop-color="#e9d477"/>
+          <stop offset="68%" stop-color="#f0a26c"/>
+          <stop offset="100%" stop-color="#e8798b"/>
+        </linearGradient>
+      </defs>
+      <path d="M25 112 A85 85 0 0 1 195 112" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="11" stroke-linecap="round"/>
+      <path d="M25 112 A85 85 0 0 1 195 112" fill="none" stroke="url(#uv-gradient)" stroke-width="8" stroke-linecap="round" opacity=".92"/>
+      <g transform="rotate(${peakAngle.toFixed(1)} 110 112)">
+        <line x1="110" y1="20" x2="110" y2="30" stroke="rgba(255,255,255,.42)" stroke-width="1.5"/>
+      </g>
+      <g transform="rotate(${angle.toFixed(1)} 110 112)">
+        <line x1="110" y1="30" x2="110" y2="48" stroke="#f7fbfc" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="110" cy="48" r="4.6" fill="#0c1422" stroke="#f7fbfc" stroke-width="2"/>
+      </g>
+      <text x="110" y="94" text-anchor="middle" fill="#f5f8fc" font-size="29" font-weight="300" letter-spacing="-1">${formatNumber(current, locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })}</text>
+      <text x="110" y="110" text-anchor="middle" fill="rgba(255,255,255,.42)" font-size="8" letter-spacing="1.4">${escapeHtml(
+        translate("details.uv"),
+      )}</text>
+      <text x="25" y="128" fill="rgba(255,255,255,.3)" font-size="7">0</text>
+      <text x="195" y="128" text-anchor="end" fill="rgba(255,255,255,.3)" font-size="7">12</text>
+    </svg>
+    <div class="uv-meta">
+      <span data-level="${category}">${escapeHtml(translate(`details.uv${capitalize(category)}`))}</span>
+      <small>${escapeHtml(translate("details.uvToday"))} ${formatNumber(peak, locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })}</small>
+    </div>
+  </div>`;
+}
+
+export function pressureGauge(pressure, trend, units, locale, translate) {
+  const value = clamp(Number(pressure) || 1013, 970, 1050);
+  const angle = -120 + ((value - 970) / 80) * 240;
+  const trendIcon = trend === "rising" ? "chevronUp" : trend === "falling" ? "chevronDown" : "activity";
+  return `<div class="pressure-gauge">
+    <svg viewBox="0 0 200 156" role="img" aria-label="${escapeHtml(
+      `${translate("details.pressure")} ${formatPressure(pressure, units, locale)}`,
+    )}">
+      <path d="M30 122 A80 80 0 1 1 170 122" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="12" stroke-linecap="round"/>
+      <path d="M30 122 A80 80 0 0 1 110 24" fill="none" stroke="rgba(191,233,219,.45)" stroke-width="1.8" stroke-linecap="round"/>
+      <g transform="rotate(${angle.toFixed(1)} 100 108)">
+        <line x1="100" y1="44" x2="100" y2="105" stroke="#f5f8fc" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="100" cy="44" r="4" fill="#bfe9db"/>
+      </g>
+      <circle cx="100" cy="108" r="5" fill="#0d1524" stroke="#f5f8fc" stroke-width="1.4"/>
+      <text x="100" y="136" text-anchor="middle" fill="#f4f7fc" font-size="22" font-weight="350" letter-spacing="-.6">${escapeHtml(
+        formatPressure(pressure, units, locale),
+      )}</text>
+      <text x="26" y="88" fill="rgba(255,255,255,.28)" font-size="7">970</text>
+      <text x="174" y="88" text-anchor="end" fill="rgba(255,255,255,.28)" font-size="7">1050</text>
+    </svg>
+    <span class="gauge-trend">${uiIcon(trendIcon, 13)} ${escapeHtml(
+      translate(`details.${trend}`),
+    )}</span>
+  </div>`;
+}
+
+export function humidityDrop(value) {
+  const pct = clamp(Number(value) || 0, 0, 100);
+  return `<div class="humidity-visual" style="--pct:${pct}">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <clipPath id="drop-clip">
+          <path d="M60 12S96 56 96 76a36 36 0 0 1-72 0C24 56 60 12 60 12Z"/>
+        </clipPath>
+        <linearGradient id="drop-fill" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#74b8de"/>
+          <stop offset="100%" stop-color="#b8e8f2"/>
+        </linearGradient>
+      </defs>
+      <path d="M60 12S96 56 96 76a36 36 0 0 1-72 0C24 56 60 12 60 12Z" fill="rgba(255,255,255,.045)" stroke="rgba(255,255,255,.13)"/>
+      <g clip-path="url(#drop-clip)">
+        <rect x="18" y="${(120 - (pct / 100) * 100).toFixed(1)}" width="84" height="110" fill="url(#drop-fill)" opacity=".75"/>
+        <path d="M20 87c12-5 21 4 34 0s22-5 33 0 17 3 24 0v30H20Z" fill="#d7f4f6" opacity=".22"/>
+      </g>
+      <text x="60" y="82" text-anchor="middle" fill="#f4f8fc" font-size="19" font-weight="600">${Math.round(
+        pct,
+      )}%</text>
+    </svg>
+  </div>`;
+}
+
+export function visibilityBar(km, units, locale) {
+  const value = clamp(Number(km) || 0, 0, 40);
+  const pct = (value / 40) * 100;
+  return `<div class="visibility-bar">
+    <div class="visibility-track"><span style="left:${pct}%"></span></div>
+    <div class="visibility-labels"><span>0</span><span>${escapeHtml(
+      formatVisibility(10, units, locale),
+    )}</span><span>${escapeHtml(formatVisibility(40, units, locale))}</span></div>
+  </div>`;
+}
+
+export function cloudDonut(percent) {
+  const value = clamp(Number(percent) || 0, 0, 100);
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  return `<div class="cloud-donut">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="${radius}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7"/>
+      <circle cx="50" cy="50" r="${radius}" fill="none" stroke="#c8d6e9" stroke-opacity=".8" stroke-width="7" stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${(
+        circumference *
+        (1 - value / 100)
+      ).toFixed(1)}" transform="rotate(-90 50 50)"/>
+    </svg>
+    <span><strong>${Math.round(value)}</strong><small>%</small></span>
+  </div>`;
+}
+
+export function aqiBar(aqi, locale, translate) {
+  const value = clamp(Number(aqi) || 0, 0, 120);
+  const pct = clamp((value / 100) * 100, 2, 100);
+  return `<div class="aqi-bar" role="img" aria-label="${escapeHtml(
+    translate("air.aqiScale"),
+  )} ${Math.round(value)}">
+    <div class="aqi-track"><span style="left:${pct}%"></span></div>
+    <div class="aqi-ticks"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100+</span></div>
+  </div>`;
+}
+
+export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }) {
+  const rise = timeToMinutes(sunrise);
+  const set = timeToMinutes(sunset);
+  const now = Number.isFinite(nowMinutes) ? nowMinutes : rise ?? 0;
+  let progress = 0;
+  if (rise != null && set != null && set > rise) {
+    progress = clamp((now - rise) / (set - rise), 0, 1);
+  }
+  const start = { x: 24, y: 104 };
+  const end = { x: 236, y: 104 };
+  const control = { x: 130, y: 14 };
+  const point = (t) => ({
+    x: (1 - t) ** 2 * start.x + 2 * (1 - t) * t * control.x + t ** 2 * end.x,
+    y: (1 - t) ** 2 * start.y + 2 * (1 - t) * t * control.y + t ** 2 * end.y,
+  });
+  const sun = point(progress);
+  return `<div class="sun-arc-wrap">
+    <svg viewBox="0 0 260 132" class="sun-arc" role="img" aria-label="${escapeHtml(
+      translate("sun.arcLabel"),
+    )}">
+      <defs>
+        <linearGradient id="sun-arc-line" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#f0b66a" stop-opacity=".4"/>
+          <stop offset="50%" stop-color="#f7d795" stop-opacity=".85"/>
+          <stop offset="100%" stop-color="#e9a866" stop-opacity=".4"/>
+        </linearGradient>
+        <linearGradient id="sun-horizon" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
+          <stop offset="50%" stop-color="rgba(255,255,255,.18)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </linearGradient>
+      </defs>
+      <path d="M24 104 Q130 8 236 104" fill="none" stroke="rgba(255,255,255,.075)" stroke-width="1.4"/>
+      <path d="M24 104 Q130 8 236 104" fill="none" stroke="url(#sun-arc-line)" stroke-width="2.4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="${1 - progress}"/>
+      <line x1="14" y1="104" x2="246" y2="104" stroke="url(#sun-horizon)" stroke-width="1"/>
+      <g ${isDay ? "" : 'opacity=".5"'}>
+        <circle cx="${sun.x.toFixed(1)}" cy="${sun.y.toFixed(1)}" r="17" fill="url(#wx-sun-glow)" opacity=".8"/>
+        <circle cx="${sun.x.toFixed(1)}" cy="${sun.y.toFixed(1)}" r="6.2" fill="url(#wx-sun)"/>
+      </g>
+      <circle cx="24" cy="104" r="2.2" fill="rgba(255,255,255,.45)"/>
+      <circle cx="236" cy="104" r="2.2" fill="rgba(255,255,255,.45)"/>
+    </svg>
+    <div class="sun-arc-labels">
+      <span>${escapeHtml(translate("sun.rise"))}<b>${escapeHtml(formatHour(sunrise))}</b></span>
+      <span>${escapeHtml(translate("sun.set"))}<b>${escapeHtml(formatHour(sunset))}</b></span>
+    </div>
+  </div>`;
+}
+
+export function nowcastBars(nowcast, units, translate) {
+  if (!nowcast.length) {
+    return `<div class="nowcast-empty">${uiIcon("droplet", 18)}<span>${escapeHtml(
+      translate("nowcast.noData"),
+    )}</span></div>`;
+  }
+  const max = Math.max(...nowcast.map((point) => point.precipitation), 0.2);
+  return `<div class="nowcast-bars" role="img" aria-label="${escapeHtml(
+    translate("nowcast.chartAria"),
+  )}">
+    <div class="nowcast-grid"></div>
+    ${nowcast
+      .map((point, index) => {
+        const height = clamp((point.precipitation / max) * 100, point.precipitation > 0 ? 8 : 2, 100);
+        return `<div class="nowcast-col">
+          <span class="nowcast-value">${point.precipitation > 0 ? escapeHtml(formatPrecip(point.precipitation, units, "en", 2)) : ""}</span>
+          <span class="nowcast-bar" style="--h:${height}%;--delay:${index * 45}ms"></span>
+          <span class="nowcast-time">${index === 0 ? escapeHtml(translate("common.now")) : escapeHtml(formatHour(point.time).slice(0, 2))}</span>
+        </div>`;
+      })
+      .join("")}
+  </div>`;
+}
+
+export function aqiSparkline(values) {
+  if (!values || values.length < 2) return "";
+  const width = 240;
+  const height = 48;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(6, max - min);
+  const points = values.map((value, index) => ({
+    x: (index / (values.length - 1)) * width,
+    y: height - 5 - ((value - min) / range) * (height - 12),
+  }));
+  const line = linePath(points);
+  const area = `${line} L${width} ${height} L0 ${height} Z`;
+  return `<svg class="aqi-spark" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+    <path d="${area}" fill="rgba(191,233,219,.07)"/>
+    <path d="${line}" fill="none" stroke="#bfe9db" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="${points[0].x}" cy="${points[0].y}" r="2.4" fill="#bfe9db"/>
+  </svg>`;
+}
+
+function timeToMinutes(iso) {
+  if (!iso) return null;
+  const match = String(iso).match(/T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}

@@ -1,0 +1,11 @@
+node_modules
+dist
+.npm-cache
+*.log
+.playwright
+.screenshots
+.chrome-*
+.reference
+*.zip
+irm-sample.json
+.DS_Store

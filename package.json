@@ -1,0 +1,32 @@
+{
+  "name": "dfwmeteo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DFWMeteo — a premium multi-model weather app, calibrated for Belgium.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "node --watch server/index.ts --dev",
+    "start": "node server/index.ts",
+    "build": "npm run typecheck && npm run build:static",
+    "build:static": "node scripts/build-static.mjs",
+    "preview": "npm run build:static && node scripts/serve-static.mjs",
+    "serve:static": "node scripts/serve-static.mjs",
+    "typecheck": "tsc -p tsconfig.server.json --noEmit",
+    "test": "node scripts/consensus.test.ts",
+    "test:api": "node scripts/test-api.ts"
+  },
+  "dependencies": {
+    "compression": "^1.8.1",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.0",
+    "esbuild": "^0.25.0",
+    "typescript": "~5.9.3"
+  }
+}
