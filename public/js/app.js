@@ -743,7 +743,7 @@ function updateBootText() {
 }
 
 function brandWordmark() {
-  return `<span class="brand-name" aria-label="DFWMeteo"><b>DFW</b><em>Meteo</em></span>`;
+  return `<span class="brand-name" aria-label="DFWMeteo"><b>DFW</b><em>Meteo</em><span class="brand-radar" aria-hidden="true"><span></span><span></span></span></span>`;
 }
 
 function renderSkeleton() {
@@ -806,10 +806,10 @@ function headerMarkup() {
   const country = countryLabel(state.place);
   return `<header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="/" data-action="home" aria-label="DFWMeteo — ${escapeHtml(
+      <a class="brand" href="./" data-action="home" aria-label="DFWMeteo — ${escapeHtml(
         tr("app.tagline"),
       )}">
-        <span class="brand-symbol">${brandMark(30)}</span>
+        <span class="brand-symbol">${brandMark(32)}</span>
         <span class="brand-copy">${brandWordmark()}<small>${escapeHtml(
           tr("app.tagline"),
         )}</small></span>
@@ -1868,7 +1868,7 @@ function syncModalInert() {
   document.body.classList.toggle("modal-open", modalOpen);
 }
 
-function openModal(type, payload = null) {
+function openModal(type, payload = null, { pushHistory = true } = {}) {
   state.modalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   state.modal = { type, payload };
   if (type === "search") {
@@ -1876,9 +1876,14 @@ function openModal(type, payload = null) {
   }
   syncModalInert();
   renderModal({ focus: true });
+  if (pushHistory && window.history?.pushState) {
+    try {
+      window.history.pushState({ dfwModal: type }, "");
+    } catch {}
+  }
 }
 
-function closeModal() {
+function closeModal({ popHistory = true } = {}) {
   if (!state.modal) return;
   if (state.modal.type === "search") cancelSearch();
   state.modal = null;
@@ -1888,6 +1893,12 @@ function closeModal() {
   const trigger = state.modalTrigger;
   state.modalTrigger = null;
   if (trigger?.isConnected) trigger.focus();
+
+  if (popHistory && window.history?.state?.dfwModal) {
+    try {
+      window.history.back();
+    } catch {}
+  }
 }
 
 function renderModal({ focus = false, focusSelector = null } = {}) {
@@ -3112,9 +3123,48 @@ function bindEvents() {
   }, 120000);
 }
 
+function setupBackButtonHandler() {
+  // 1. Android Capacitor Native Back Button listener
+  const capacitorApp = window.CapacitorApp || window.Capacitor?.Plugins?.App;
+  if (capacitorApp?.addListener) {
+    try {
+      capacitorApp.addListener("backButton", ({ canGoBack }) => {
+        if (state.modal) {
+          closeModal();
+        } else if (canGoBack && window.history.length > 1) {
+          window.history.back();
+        } else if (capacitorApp.exitApp) {
+          capacitorApp.exitApp();
+        }
+      });
+    } catch (err) {
+      console.warn("[dfwmeteo] Capacitor backButton listener error:", err);
+    }
+  }
+
+  // 2. Web / PWA browser popstate listener
+  window.addEventListener("popstate", () => {
+    if (state.modal) {
+      closeModal({ popHistory: false });
+    }
+  });
+}
+
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch((err) => {
+        console.warn("[dfwmeteo] SW registration error:", err);
+      });
+    });
+  }
+}
+
 async function init() {
   loadPreferences();
   bindEvents();
+  setupBackButtonHandler();
+  registerServiceWorker();
   updateBootText();
   const urlPlace = placeFromUrl();
   const storedPlace = loadLastPlace();

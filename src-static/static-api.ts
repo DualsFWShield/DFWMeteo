@@ -1,15 +1,18 @@
+import { App as CapacitorApp } from "@capacitor/app";
 import { geocode, reverseGeocode } from "../server/geocode.ts";
 import { getWeather } from "../server/weather.ts";
 
 /**
- * GitHub Pages runs without the Express server. This entry bundles the same
- * consensus engine into the page and calls the Open-Meteo/BigDataCloud APIs
- * directly (both are CORS-enabled).
+ * GitHub Pages & native Capacitor builds run without the Express server.
+ * This entry bundles the consensus engine and Capacitor plugins into the page.
  */
 const api = {
   weather: getWeather,
   geocode,
   reverseGeocode,
+  App: CapacitorApp,
 };
 
-(globalThis as typeof globalThis & { DFWMeteoApi?: typeof api }).DFWMeteoApi = api;
+(globalThis as typeof globalThis & { DFWMeteoApi?: typeof api; CapacitorApp?: typeof CapacitorApp }).DFWMeteoApi = api;
+(globalThis as typeof globalThis & { CapacitorApp?: typeof CapacitorApp }).CapacitorApp = CapacitorApp;
+

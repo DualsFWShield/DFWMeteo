@@ -184,12 +184,22 @@ export function weatherGlyph(code, isDay, size = "md", className = "", label = "
 }
 
 export function brandMark(size = 26) {
-  return `<svg class="brand-mark" width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false">
-    <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.05" opacity=".42"/>
-    <circle cx="16" cy="16" r="10.2" stroke="currentColor" stroke-width=".65" opacity=".16"/>
-    <path d="M10 8.3h4.2a7.7 7.7 0 0 1 0 15.4H10Z" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/>
-    <path d="M16 1.7v2.6M16 27.7v2.6" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity=".36"/>
-    <circle cx="25.1" cy="7.1" r="1.4" fill="#f5d293"/>
+  const height = Math.round((size * 82) / 80);
+  return `<svg class="brand-mark" width="${size}" height="${height}" viewBox="0 0 80 82" fill="none" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="nav-sun" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fde047" />
+        <stop offset="100%" stop-color="#f97316" />
+      </linearGradient>
+      <linearGradient id="nav-cloud" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" />
+        <stop offset="100%" stop-color="#0284c7" />
+      </linearGradient>
+    </defs>
+    <path d="M 40 4 L 72 16 V 42 C 72 62 58 73 40 78 C 22 73 8 62 8 42 V 16 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" />
+    <circle cx="50" cy="30" r="12" fill="url(#nav-sun)" />
+    <path d="M 23 54 A 9 9 0 0 1 23 36 A 16 16 0 0 1 54 32 A 11 11 0 0 1 58 54 Z" fill="url(#nav-cloud)" />
+    <path d="M 43 41 L 33 55 L 40 55 L 36 69 L 49 51 L 41 51 Z" fill="#facc15" />
   </svg>`;
 }
 

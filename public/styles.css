@@ -271,62 +271,93 @@ svg {
 }
 
 .boot-orbit {
-  width: 116px;
-  height: 116px;
+  width: 120px;
+  height: 120px;
   position: relative;
   display: grid;
   place-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .boot-orbit span {
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(191, 233, 219, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.16);
   border-radius: 50%;
 }
 
 .boot-orbit span:nth-child(2) {
   inset: 18px;
-  border-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .boot-orbit span:nth-child(3) {
   inset: 36px;
-  border-color: rgba(245, 210, 147, 0.16);
+  border-color: rgba(245, 158, 11, 0.22);
 }
 
 .boot-orbit i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 22px rgba(245, 210, 147, 0.9);
+  background: #f59e0b;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.95);
   animation: orbit 5.5s linear infinite;
   transform-origin: 0 0;
+}
+
+.boot-shield {
+  position: absolute;
+  filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.35));
+  animation: bootShieldPulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes bootShieldPulse {
+  0% { transform: scale(0.96); filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.25)); }
+  100% { transform: scale(1.04); filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.5)); }
 }
 
 .boot-brand {
   display: inline-flex;
   align-items: baseline;
   gap: 2px;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--mint);
+  font-size: 21px;
+  font-family: system-ui, -apple-system, "Manrope", sans-serif;
+  letter-spacing: -0.4px;
+  line-height: 1;
 }
 
 .boot-brand b {
-  font-size: 0.82em;
-  font-weight: 780;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  color: #f8fafc;
 }
 
 .boot-brand em {
-  font-family: var(--font-display);
   font-style: normal;
-  font-size: 1.42em;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  color: #38bdf8;
+}
+
+.boot-radar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 7px 0 14px;
+}
+
+.boot-radar span:first-child {
+  width: 38px;
+  height: 3px;
+  border-radius: 2px;
+  background: #f59e0b;
+}
+
+.boot-radar span:last-child {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: #38bdf8;
+  opacity: 0.65;
 }
 
 .boot-text {
@@ -403,50 +434,75 @@ svg {
 }
 
 .brand-symbol {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  color: var(--mint);
-  border: 1px solid rgba(191, 233, 219, 0.18);
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 20%, rgba(191, 233, 219, 0.12), transparent 70%);
-  box-shadow: inset 0 0 20px rgba(191, 233, 219, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 20%, rgba(56, 189, 248, 0.14), transparent 70%);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12), inset 0 0 12px rgba(56, 189, 248, 0.05);
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;
+}
+
+.brand:hover .brand-symbol {
+  transform: translateY(-1px) scale(1.05);
+  border-color: rgba(56, 189, 248, 0.5);
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
   line-height: 1;
-  gap: 5px;
+  gap: 2px;
 }
 
 .brand-name {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px;
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: 0;
-  padding-left: 0;
-  line-height: 0.9;
+  gap: 0 1.5px;
+  font-size: 18px;
+  font-family: system-ui, -apple-system, "Manrope", sans-serif;
+  line-height: 1;
   white-space: nowrap;
 }
 
 .brand-name b {
-  font-size: 0.86em;
-  font-weight: 780;
-  letter-spacing: 0.06em;
-  color: var(--text);
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.3px;
 }
 
 .brand-name em {
-  font-family: var(--font-display);
   font-style: normal;
   font-weight: 400;
-  font-size: 1.38em;
-  letter-spacing: -0.025em;
-  color: var(--text);
+  color: #38bdf8;
+  letter-spacing: -0.3px;
+}
+
+.brand-radar {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.brand-radar span:first-child {
+  width: 26px;
+  height: 2.5px;
+  border-radius: 1.5px;
+  background: #f59e0b;
+}
+
+.brand-radar span:last-child {
+  width: 8px;
+  height: 2.5px;
+  border-radius: 1.5px;
+  background: #38bdf8;
+  opacity: 0.65;
 }
 
 .brand-copy small {
@@ -455,6 +511,7 @@ svg {
   letter-spacing: 0.01em;
   color: var(--faint);
   white-space: nowrap;
+  margin-top: 2px;
 }
 
 .place-pill {
@@ -3904,16 +3961,15 @@ svg {
 }
 
 .error-orbit {
-  width: 92px;
-  height: 92px;
+  width: 96px;
+  height: 96px;
   margin: 0 auto 24px;
-  border: 1px solid rgba(191, 233, 219, 0.14);
-  border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 24px;
   display: grid;
   place-items: center;
-  color: var(--mint);
-  background: radial-gradient(circle, rgba(191, 233, 219, 0.08), transparent 70%);
-  box-shadow: 0 0 0 18px rgba(255, 255, 255, 0.012);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.12), transparent 70%);
+  box-shadow: 0 8px 32px rgba(2, 132, 199, 0.16), 0 0 0 14px rgba(255, 255, 255, 0.012);
 }
 
 .error-card .eyebrow {

@@ -1,0 +1,27 @@
+{
+  "name": "DFWMeteo — Weather, resolved",
+  "short_name": "DFWMeteo",
+  "description": "Eight independent weather models. One confident forecast. Calibrated for Belgium and ready worldwide.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
+  "categories": ["weather", "utilities"],
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "96x96",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./gemini-svg.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
