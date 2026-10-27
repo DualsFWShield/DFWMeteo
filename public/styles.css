@@ -2996,48 +2996,53 @@ svg {
 .details-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .detail-tile {
   position: relative;
-  min-height: 218px;
-  padding: 17px;
+  min-height: 224px;
+  padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 20px;
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.006)),
-    rgba(8, 14, 24, 0.45);
+    rgba(8, 14, 24, 0.55);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   transition: border-color 0.2s, background 0.2s;
 }
 
 .detail-tile:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.14);
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.01)),
-    rgba(8, 14, 24, 0.45);
+    linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+    rgba(8, 14, 24, 0.55);
 }
 
 .detail-head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.09em;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
+  flex: none;
 }
 
 .detail-head .ui-icon {
-  color: rgba(191, 233, 219, 0.62);
+  color: #38bdf8;
+  opacity: 0.9;
 }
 
 .detail-head small {
   margin-left: auto;
-  font-size: 7.5px;
+  font-size: 8px;
   font-weight: 500;
   letter-spacing: 0.02em;
   text-transform: none;
@@ -3046,8 +3051,21 @@ svg {
   text-overflow: ellipsis;
 }
 
+.detail-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 8px 0;
+}
+
+.detail-main--center {
+  align-items: center;
+  text-align: center;
+}
+
 .detail-value {
-  margin-top: 20px;
   font-size: 38px;
   font-weight: 250;
   line-height: 1;
@@ -3058,57 +3076,64 @@ svg {
 
 .detail-sub {
   margin-top: 6px;
-  font-size: 9px;
+  font-size: 9.5px;
   color: var(--faint);
+  line-height: 1.3;
+}
+
+.detail-bottom {
+  margin-top: auto;
+  flex: none;
+  width: 100%;
 }
 
 .detail-foot {
-  position: absolute;
-  left: 17px;
-  right: 17px;
-  bottom: 12px;
-  font-size: 7.5px;
+  margin-top: 8px;
+  font-size: 8px;
   color: var(--faint);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 
 .precip-mini {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: 2.5px;
   height: 44px;
-  margin-top: 14px;
+  width: 100%;
 }
 
 .precip-mini span {
   flex: 1;
   height: var(--h);
-  min-height: 2px;
   border-radius: 2px 2px 0 0;
-  background: rgba(143, 195, 255, 0.13);
+  background: rgba(255, 255, 255, 0.055);
+  transition: height 0.3s ease, background 0.2s ease;
 }
 
 .precip-mini span.is-wet {
-  background: linear-gradient(180deg, rgba(143, 195, 255, 0.72), rgba(94, 152, 208, 0.2));
+  background: linear-gradient(180deg, #38bdf8 0%, rgba(56, 189, 248, 0.35) 100%);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
 }
 
 .compass-wrap {
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 1px;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
 }
 
 .compass {
-  width: 164px;
-  height: 164px;
+  width: 130px;
+  height: 130px;
   flex: none;
 }
 
 .compass-meta {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -3116,15 +3141,15 @@ svg {
   display: block;
   font-size: 7.5px;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   color: var(--faint);
   margin-bottom: 2px;
 }
 
 .compass-meta strong {
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-2);
   white-space: nowrap;
 }
@@ -3136,53 +3161,30 @@ svg {
 }
 
 .uv-gauge {
-  margin-top: 6px;
+  width: 100%;
+  max-width: 200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .uv-gauge svg {
   width: 100%;
   height: auto;
-}
-
-.uv-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: -5px;
-}
-
-.uv-meta span {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--mint);
-}
-
-.uv-meta span[data-level="moderate"] {
-  color: var(--gold);
-}
-
-.uv-meta span[data-level="high"],
-.uv-meta span[data-level="veryHigh"],
-.uv-meta span[data-level="extreme"] {
-  color: var(--coral);
-}
-
-.uv-meta small {
-  font-size: 8px;
-  color: var(--faint);
+  display: block;
 }
 
 .visibility-bar {
-  margin-top: 42px;
+  width: 100%;
 }
 
 .visibility-track {
   position: relative;
   height: 4px;
   border-radius: 99px;
-  background: linear-gradient(90deg, rgba(240, 156, 144, 0.6), rgba(245, 210, 147, 0.5), rgba(191, 233, 219, 0.62));
-  opacity: 0.75;
+  background: linear-gradient(90deg, rgba(240, 156, 144, 0.7), rgba(245, 210, 147, 0.6), rgba(56, 189, 248, 0.7));
+  opacity: 0.8;
 }
 
 .visibility-track span {
@@ -3192,81 +3194,110 @@ svg {
   height: 10px;
   border-radius: 50%;
   background: #f6fbff;
-  border: 2px solid #0b1220;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+  border: 2px solid #080e1a;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
   transform: translate(-50%, -50%);
 }
 
 .visibility-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: 7px;
+  margin-top: 7px;
+  font-size: 7.5px;
   color: var(--faint);
 }
 
 .humidity-body {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 1px;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
 }
 
 .humidity-visual {
-  width: 104px;
-  height: 128px;
+  width: 86px;
+  height: 108px;
   flex: none;
 }
 
 .humidity-visual svg {
   width: 100%;
   height: 100%;
+  display: block;
+}
+
+.humidity-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .humidity-copy strong {
   display: block;
-  font-size: 11px;
-  font-weight: 560;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-2);
 }
 
 .humidity-copy p {
-  margin-top: 5px;
-  font-size: 8px;
+  font-size: 8.5px;
   color: var(--faint);
 }
 
+.humidity-copy p b {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .pressure-gauge {
-  margin-top: 2px;
+  width: 100%;
+  max-width: 190px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .pressure-gauge svg {
   width: 100%;
   height: auto;
+  display: block;
+}
+
+.gauge-trend-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
 }
 
 .gauge-trend {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: -7px;
-  padding: 3px 7px;
+  gap: 5px;
+  padding: 3px 9px;
   border: 1px solid var(--line);
   border-radius: 99px;
-  color: var(--faint);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
   font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .cloud-body {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 20px;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
 }
 
 .cloud-donut {
-  width: 118px;
-  height: 118px;
+  width: 98px;
+  height: 98px;
   position: relative;
   flex: none;
 }
@@ -3274,6 +3305,7 @@ svg {
 .cloud-donut svg {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
 .cloud-donut > span {
@@ -3282,51 +3314,56 @@ svg {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  padding-top: 44px;
+  padding-top: 35px;
   color: var(--text);
 }
 
 .cloud-donut strong {
-  font-size: 22px;
-  font-weight: 330;
-  letter-spacing: -0.05em;
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: -0.04em;
 }
 
 .cloud-donut small {
-  font-size: 8px;
+  font-size: 9px;
   color: var(--faint);
+  margin-left: 1px;
+}
+
+.cloud-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .cloud-copy strong {
-  font-size: 11px;
-  font-weight: 560;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-2);
 }
 
 .cloud-copy p {
-  margin-top: 4px;
-  font-size: 9px;
+  font-size: 8.5px;
   color: var(--faint);
 }
 
 .comfort-scale {
   position: relative;
   height: 4px;
-  margin-top: 35px;
   border-radius: 99px;
-  background: linear-gradient(90deg, rgba(120, 170, 220, 0.5), rgba(191, 233, 219, 0.45), rgba(245, 210, 147, 0.55));
-  opacity: 0.65;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.6), rgba(52, 211, 153, 0.5), rgba(251, 146, 60, 0.6));
+  opacity: 0.75;
 }
 
 .comfort-dot {
   position: absolute;
   top: 50%;
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #f8fbff;
-  border: 2px solid #0b1220;
-  box-shadow: 0 0 9px rgba(255, 255, 255, 0.4);
+  border: 2px solid #080e1a;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
   transform: translate(-50%, -50%);
 }
 

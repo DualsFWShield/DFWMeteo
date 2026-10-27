@@ -3,7 +3,12 @@
   "appName": "DFWMeteo",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "url": "https://dualsfwshield.github.io/DFWMeteo/",
+    "cleartext": false,
+    "androidScheme": "https",
+    "allowNavigation": [
+      "dualsfwshield.github.io"
+    ]
   },
   "android": {
     "allowMixedContent": false,

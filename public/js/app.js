@@ -1526,61 +1526,76 @@ function detailsMarkup(weather) {
         <div class="detail-head">${uiIcon("umbrella", 17)}<span>${escapeHtml(
           tr("details.precip"),
         )}</span><small>${escapeHtml(tr("details.precipSub"))}</small></div>
-        <div class="detail-value">${escapeHtml(
-          formatPrecip(today?.precipitationSum ?? 0, state.units, state.locale),
-        )}</div>
-        <div class="detail-sub">${escapeHtml(
-          tr("details.precipChance"),
-        )} ${formatPercent(today?.precipitationProbability ?? 0, state.locale)}</div>
-        ${precipBars(weather.hourly, state.units)}
-        <div class="detail-foot">${escapeHtml(tr("details.next24"))}</div>
+        <div class="detail-main">
+          <div class="detail-value">${escapeHtml(
+            formatPrecip(today?.precipitationSum ?? 0, state.units, state.locale),
+          )}</div>
+          <div class="detail-sub">${escapeHtml(
+            tr("details.precipChance"),
+          )} ${formatPercent(today?.precipitationProbability ?? 0, state.locale)}</div>
+        </div>
+        <div class="detail-bottom">
+          ${precipBars(weather.hourly, state.units)}
+          <div class="detail-foot">${escapeHtml(tr("details.next24"))}</div>
+        </div>
       </article>
 
       <article class="detail-tile detail-tile--wind">
         <div class="detail-head">${uiIcon("wind", 17)}<span>${escapeHtml(tr("details.wind"))}</span><small>${escapeHtml(
           tr("details.windDir"),
         )} ${escapeHtml(compassPoint(weather.current.windDirection, state.locale))}</small></div>
-        ${windCompass(
-          weather.current.windDirection,
-          weather.current.windSpeed,
-          weather.current.windGust,
-          state.units,
-          state.locale,
-          tr,
-        )}
+        <div class="detail-main detail-main--center">
+          ${windCompass(
+            weather.current.windDirection,
+            weather.current.windSpeed,
+            weather.current.windGust,
+            state.units,
+            state.locale,
+            tr,
+          )}
+        </div>
       </article>
 
       <article class="detail-tile detail-tile--uv">
         <div class="detail-head">${uiIcon("sun", 17)}<span>${escapeHtml(tr("details.uv"))}</span><small>${escapeHtml(
           tr("details.uvToday"),
         )}</small></div>
-        ${uvArc(uv, today?.uvMax ?? uv, state.locale, tr)}
+        <div class="detail-main detail-main--center">
+          ${uvArc(uv, today?.uvMax ?? uv, state.locale, tr)}
+        </div>
       </article>
 
       <article class="detail-tile detail-tile--visibility">
         <div class="detail-head">${uiIcon("eye", 17)}<span>${escapeHtml(
           tr("details.visibility"),
         )}</span><small>${escapeHtml(tr("details.visibilitySub"))}</small></div>
-        <div class="detail-value">${escapeHtml(
-          formatVisibility(visibility, state.units, state.locale),
-        )}</div>
-        <div class="detail-sub">${escapeHtml(visibilityText)}</div>
-        ${visibilityBar(visibility, state.units, state.locale)}
+        <div class="detail-main">
+          <div class="detail-value">${escapeHtml(
+            formatVisibility(visibility, state.units, state.locale),
+          )}</div>
+          <div class="detail-sub">${escapeHtml(visibilityText)}</div>
+        </div>
+        <div class="detail-bottom">
+          ${visibilityBar(visibility, state.units, state.locale)}
+        </div>
       </article>
 
       <article class="detail-tile detail-tile--humidity">
         <div class="detail-head">${uiIcon("droplet", 17)}<span>${escapeHtml(
           tr("details.humidity"),
-        )}</span><small>${escapeHtml(tr("details.dewPoint"))} ${escapeHtml(
-          formatTemp(weather.current.dewPoint, state.units, state.locale),
-        )}</small></div>
-        <div class="humidity-body">
-          ${humidityDrop(weather.current.humidity)}
-          <div class="humidity-copy"><strong>${escapeHtml(
-            humidityDescription(weather.current.humidity),
-          )}</strong><p>${escapeHtml(tr("details.dewPoint"))} ${escapeHtml(
-            formatTemp(weather.current.dewPoint, state.units, state.locale),
-          )}</p></div>
+        )}</span><small>${escapeHtml(tr("details.humiditySub"))}</small></div>
+        <div class="detail-main detail-main--center">
+          <div class="humidity-body">
+            ${humidityDrop(weather.current.humidity)}
+            <div class="humidity-copy">
+              <strong>${escapeHtml(
+                humidityDescription(weather.current.humidity),
+              )}</strong>
+              <p>${escapeHtml(tr("details.dewPoint"))} : <b>${escapeHtml(
+                formatTemp(weather.current.dewPoint, state.units, state.locale),
+              )}</b></p>
+            </div>
+          </div>
         </div>
       </article>
 
@@ -1588,24 +1603,29 @@ function detailsMarkup(weather) {
         <div class="detail-head">${uiIcon("gauge", 17)}<span>${escapeHtml(
           tr("details.pressure"),
         )}</span><small>${escapeHtml(tr("details.pressureTrend"))}</small></div>
-        ${pressureGauge(
-          weather.current.pressure,
-          trend,
-          state.units,
-          state.locale,
-          tr,
-        )}
+        <div class="detail-main detail-main--center">
+          ${pressureGauge(
+            weather.current.pressure,
+            trend,
+            state.units,
+            state.locale,
+            tr,
+          )}
+        </div>
       </article>
 
       <article class="detail-tile detail-tile--cloud">
         <div class="detail-head">${uiIcon("cloud", 17)}<span>${escapeHtml(
           tr("details.cloud"),
         )}</span><small>${escapeHtml(tr("details.cloudSub"))}</small></div>
-        <div class="cloud-body">
-          ${cloudDonut(weather.current.cloudCover)}
-          <div class="cloud-copy"><strong>${escapeHtml(cloudText)}</strong><p>${Math.round(
-            weather.current.cloudCover,
-          )}%</p></div>
+        <div class="detail-main detail-main--center">
+          <div class="cloud-body">
+            ${cloudDonut(weather.current.cloudCover)}
+            <div class="cloud-copy">
+              <strong>${escapeHtml(cloudText)}</strong>
+              <p>${escapeHtml(tr("details.cloudCover"))}</p>
+            </div>
+          </div>
         </div>
       </article>
 
@@ -1613,24 +1633,28 @@ function detailsMarkup(weather) {
         <div class="detail-head">${uiIcon("thermometer", 17)}<span>${escapeHtml(
           tr("details.comfort"),
         )}</span><small>${escapeHtml(tr("details.comfortSub"))}</small></div>
-        <div class="detail-value">${escapeHtml(
-          formatTemp(weather.current.apparent, state.units, state.locale),
-        )}</div>
-        <div class="detail-sub">${escapeHtml(comfortText)}</div>
-        <div class="comfort-scale">
-          <span class="comfort-dot" style="left:${clamp(
-            ((weather.current.apparent - Math.min(today?.min ?? 0, weather.current.temp) + 4) /
-              Math.max(8, (today?.max ?? 20) - (today?.min ?? 0) + 8)) *
-              100,
-            4,
-            96,
-          )}%"></span>
+        <div class="detail-main">
+          <div class="detail-value">${escapeHtml(
+            formatTemp(weather.current.apparent, state.units, state.locale),
+          )}</div>
+          <div class="detail-sub">${escapeHtml(comfortText)}</div>
         </div>
-        <div class="comfort-labels"><span>${escapeHtml(
-          formatTemp(today?.min ?? weather.current.temp, state.units, state.locale),
-        )}</span><span>${escapeHtml(
-          formatTemp(today?.max ?? weather.current.temp, state.units, state.locale),
-        )}</span></div>
+        <div class="detail-bottom">
+          <div class="comfort-scale">
+            <span class="comfort-dot" style="left:${clamp(
+              ((weather.current.apparent - Math.min(today?.min ?? 0, weather.current.temp) + 4) /
+                Math.max(8, (today?.max ?? 20) - (today?.min ?? 0) + 8)) *
+                100,
+              4,
+              96,
+            )}%"></span>
+          </div>
+          <div class="comfort-labels"><span>${escapeHtml(
+            formatTemp(today?.min ?? weather.current.temp, state.units, state.locale),
+          )}</span><span>${escapeHtml(
+            formatTemp(today?.max ?? weather.current.temp, state.units, state.locale),
+          )}</span></div>
+        </div>
       </article>
     </div>
   </section>`;
@@ -2416,6 +2440,15 @@ function settingsModalContent() {
           15,
         )} ${escapeHtml(tr("settings.method"))}</button>
       </section>
+      <section class="settings-section settings-section--row">
+        <div class="settings-label"><h3>${escapeHtml(tr("settings.update"))}</h3><p>${escapeHtml(
+          tr("settings.updateSub"),
+        )}</p></div>
+        <button class="button button--ghost button--small" data-action="force-update">${uiIcon(
+          "refresh",
+          15,
+        )} ${escapeHtml(tr("settings.forceUpdate"))}</button>
+      </section>
       <section class="settings-about">
         ${brandWordmark()}
         <p>${escapeHtml(tr("settings.aboutBody"))}</p>
@@ -2951,6 +2984,10 @@ function handleAction(event) {
       event.preventDefault();
       openModal("method");
       break;
+    case "force-update":
+      event.preventDefault();
+      forceAppUpdate();
+      break;
     case "refresh":
       event.preventDefault();
       refreshForecast({ notify: true });
@@ -3169,12 +3206,79 @@ function setupBackButtonHandler() {
   });
 }
 
+async function forceAppUpdate() {
+  showToast(tr("settings.updating"), "default");
+
+  // 1. Clear CacheStorage
+  if ("caches" in window) {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    } catch (e) {
+      console.warn("[dfwmeteo] Cache clear error:", e);
+    }
+  }
+
+  // 2. Clear weather cache in localStorage, keeping preferences
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("dfwmeteo_weather_") || key.startsWith("dfwmeteo_cache_"))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+
+  // 3. Skip waiting on active service worker
+  if ("serviceWorker" in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+        await reg.update().catch(() => {});
+      }
+    } catch (e) {
+      console.warn("[dfwmeteo] SW update error:", e);
+    }
+  }
+
+  // 4. Force reload bypassing cache
+  const url = new URL(window.location.href);
+  url.searchParams.set("reload", Date.now().toString());
+  window.location.replace(url.toString());
+}
+
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch((err) => {
+    window.addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("./sw.js");
+        reg.update().catch(() => {});
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                showToast(tr("settings.updated"), "success");
+              }
+            });
+          }
+        });
+      } catch (err) {
         console.warn("[dfwmeteo] SW registration error:", err);
-      });
+      }
+    });
+
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!reloading) {
+        reloading = true;
+        window.location.reload();
+      }
     });
   }
 }

@@ -274,13 +274,13 @@ export function modelSpreadChart({
 
 export function precipBars(hourly, units = "metric", count = 24) {
   const points = hourly.slice(0, count);
-  const max = Math.max(...points.map((point) => point.precipitation ?? 0), 0.4);
+  const max = Math.max(...points.map((point) => point.precipitation ?? 0), 0.5);
   return `<div class="precip-mini" aria-hidden="true">
     ${points
       .map((point, index) => {
         const value = point.precipitation ?? 0;
-        const height = clamp((value / max) * 100, value > 0 ? 5 : 1.5, 100);
-        return `<span class="${value > 0.05 ? "is-wet" : ""}" style="--h:${height}%;--i:${index}" title="${escapeHtml(
+        const height = clamp((value / max) * 100, 4, 100);
+        return `<span class="${value > 0.05 ? "is-wet" : "is-dry"}" style="--h:${height}%;--i:${index}" title="${escapeHtml(
           formatPrecip(value, units, "en"),
         )}"></span>`;
       })
@@ -295,28 +295,28 @@ export function windCompass(direction, speed, gust, units, locale, translate) {
     <svg class="compass" viewBox="0 0 160 160" role="img" aria-label="${escapeHtml(
       `${translate("details.wind")} ${formatWindValue(speed, units, locale)}`,
     )}">
-      <circle cx="80" cy="80" r="66" fill="rgba(255,255,255,.018)" stroke="rgba(255,255,255,.09)"/>
-      <circle cx="80" cy="80" r="49" fill="none" stroke="rgba(255,255,255,.055)" stroke-dasharray="1 5"/>
+      <circle cx="80" cy="80" r="70" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.07)"/>
+      <circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,.05)" stroke-dasharray="2 4"/>
       <g class="compass-ticks">
         ${Array.from({ length: 24 }, (_, index) => {
           const angle = (index * 360) / 24;
           const major = index % 6 === 0;
-          return `<line x1="80" y1="${major ? 18 : 21}" x2="80" y2="${major ? 27 : 25}" transform="rotate(${angle} 80 80)" stroke="rgba(255,255,255,${
-            major ? 0.35 : 0.13
-          })" stroke-width="${major ? 1.4 : 1}" stroke-linecap="round"/>`;
+          return `<line x1="80" y1="${major ? 13 : 16}" x2="80" y2="${major ? 23 : 21}" transform="rotate(${angle} 80 80)" stroke="rgba(255,255,255,${
+            major ? 0.45 : 0.16
+          })" stroke-width="${major ? 1.5 : 1}" stroke-linecap="round"/>`;
         }).join("")}
       </g>
-      <g class="compass-labels" fill="rgba(232,241,252,.72)" font-size="10" font-weight="600" text-anchor="middle">
-        <text x="80" y="42">N</text><text x="124" y="84">E</text><text x="80" y="128">S</text><text x="36" y="84">W</text>
+      <g class="compass-labels" fill="rgba(232,241,252,.75)" font-size="9.5" font-weight="700" text-anchor="middle">
+        <text x="80" y="36">N</text><text x="130" y="83.5">E</text><text x="80" y="132">S</text><text x="30" y="83.5">W</text>
       </g>
       <g transform="rotate(${rotation.toFixed(1)} 80 80)">
-        <path d="M80 34 87 55H73Z" fill="#bfe9db"/>
-        <path d="M80 126 73 105h14Z" fill="rgba(255,255,255,.2)"/>
-        <line x1="80" y1="52" x2="80" y2="108" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>
+        <path d="M80 18 L86 42 L80 37 L74 42 Z" fill="#38bdf8"/>
+        <path d="M80 142 L85 120 L80 124 L75 120 Z" fill="rgba(255,255,255,.2)"/>
+        <line x1="80" y1="42" x2="80" y2="58" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="80" y1="102" x2="80" y2="120" stroke="rgba(255,255,255,.2)" stroke-width="1.4" stroke-linecap="round"/>
       </g>
-      <circle cx="80" cy="80" r="4.2" fill="#0e1728" stroke="#bfe9db" stroke-width="1.5"/>
-      <text x="80" y="73" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8" letter-spacing="1.2">FROM</text>
-      <text x="80" y="96" text-anchor="middle" fill="#f4f7fc" font-size="14" font-weight="650">${escapeHtml(cardinal)}</text>
+      <circle cx="80" cy="80" r="21" fill="#080e1a" stroke="rgba(255,255,255,.14)" stroke-width="1.4"/>
+      <text x="80" y="84.5" text-anchor="middle" fill="#f4f7fc" font-size="12" font-weight="700" letter-spacing="-.3">${escapeHtml(cardinal)}</text>
     </svg>
     <div class="compass-meta">
       <div><span>${escapeHtml(translate("details.wind"))}</span><strong>${escapeHtml(
@@ -325,6 +325,7 @@ export function windCompass(direction, speed, gust, units, locale, translate) {
       <div><span>${escapeHtml(translate("details.gust"))}</span><strong>${escapeHtml(
         formatWindValue(gust, units, locale),
       )} <small>${units === "imperial" ? "mph" : "km/h"}</small></strong></div>
+      <div><span>Direction</span><strong>${Math.round(rotation)}°</strong></div>
     </div>
   </div>`;
 }
@@ -335,8 +336,9 @@ export function uvArc(value, max, locale, translate) {
   const angle = -90 + (current / 12) * 180;
   const peakAngle = -90 + (peak / 12) * 180;
   const category = uvCategory(current);
+  const categoryName = translate(`details.uv${capitalize(category)}`);
   return `<div class="uv-gauge">
-    <svg viewBox="0 0 220 132" role="img" aria-label="${escapeHtml(
+    <svg viewBox="0 0 220 134" role="img" aria-label="${escapeHtml(
       `${translate("details.uv")} ${formatNumber(current, locale, {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
@@ -344,38 +346,34 @@ export function uvArc(value, max, locale, translate) {
     )}">
       <defs>
         <linearGradient id="uv-gradient" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#74d4a5"/>
-          <stop offset="38%" stop-color="#e9d477"/>
-          <stop offset="68%" stop-color="#f0a26c"/>
-          <stop offset="100%" stop-color="#e8798b"/>
+          <stop offset="0%" stop-color="#34d399"/>
+          <stop offset="35%" stop-color="#facc15"/>
+          <stop offset="70%" stop-color="#fb923c"/>
+          <stop offset="100%" stop-color="#f87171"/>
         </linearGradient>
       </defs>
-      <path d="M25 112 A85 85 0 0 1 195 112" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="11" stroke-linecap="round"/>
-      <path d="M25 112 A85 85 0 0 1 195 112" fill="none" stroke="url(#uv-gradient)" stroke-width="8" stroke-linecap="round" opacity=".92"/>
-      <g transform="rotate(${peakAngle.toFixed(1)} 110 112)">
-        <line x1="110" y1="20" x2="110" y2="30" stroke="rgba(255,255,255,.42)" stroke-width="1.5"/>
+      <path d="M25 110 A85 85 0 0 1 195 110" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M25 110 A85 85 0 0 1 195 110" fill="none" stroke="url(#uv-gradient)" stroke-width="7.5" stroke-linecap="round" opacity=".95"/>
+      <g transform="rotate(${peakAngle.toFixed(1)} 110 110)">
+        <line x1="110" y1="18" x2="110" y2="28" stroke="rgba(255,255,255,.5)" stroke-width="1.8" stroke-linecap="round"/>
       </g>
-      <g transform="rotate(${angle.toFixed(1)} 110 112)">
-        <line x1="110" y1="30" x2="110" y2="48" stroke="#f7fbfc" stroke-width="2.2" stroke-linecap="round"/>
-        <circle cx="110" cy="48" r="4.6" fill="#0c1422" stroke="#f7fbfc" stroke-width="2"/>
+      <g transform="rotate(${angle.toFixed(1)} 110 110)">
+        <circle cx="110" cy="25" r="5.5" fill="#ffffff" stroke="#080e1a" stroke-width="2"/>
       </g>
-      <text x="110" y="94" text-anchor="middle" fill="#f5f8fc" font-size="29" font-weight="300" letter-spacing="-1">${formatNumber(current, locale, {
+      <text x="110" y="80" text-anchor="middle" fill="#f4f7fc" font-size="30" font-weight="300" letter-spacing="-1">${formatNumber(current, locale, {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       })}</text>
-      <text x="110" y="110" text-anchor="middle" fill="rgba(255,255,255,.42)" font-size="8" letter-spacing="1.4">${escapeHtml(
-        translate("details.uv"),
+      <text x="110" y="100" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-weight="650" letter-spacing=".5">${escapeHtml(
+        categoryName,
       )}</text>
-      <text x="25" y="128" fill="rgba(255,255,255,.3)" font-size="7">0</text>
-      <text x="195" y="128" text-anchor="end" fill="rgba(255,255,255,.3)" font-size="7">12</text>
-    </svg>
-    <div class="uv-meta">
-      <span data-level="${category}">${escapeHtml(translate(`details.uv${capitalize(category)}`))}</span>
-      <small>${escapeHtml(translate("details.uvToday"))} ${formatNumber(peak, locale, {
+      <text x="25" y="126" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="8">0</text>
+      <text x="110" y="126" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="8">${escapeHtml(translate("details.uvToday"))} ${formatNumber(peak, locale, {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
-      })}</small>
-    </div>
+      })}</text>
+      <text x="195" y="126" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="8">12</text>
+    </svg>
   </div>`;
 }
 
@@ -384,25 +382,27 @@ export function pressureGauge(pressure, trend, units, locale, translate) {
   const angle = -120 + ((value - 970) / 80) * 240;
   const trendIcon = trend === "rising" ? "chevronUp" : trend === "falling" ? "chevronDown" : "activity";
   return `<div class="pressure-gauge">
-    <svg viewBox="0 0 200 156" role="img" aria-label="${escapeHtml(
+    <svg viewBox="0 0 200 138" role="img" aria-label="${escapeHtml(
       `${translate("details.pressure")} ${formatPressure(pressure, units, locale)}`,
     )}">
-      <path d="M30 122 A80 80 0 1 1 170 122" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="12" stroke-linecap="round"/>
-      <path d="M30 122 A80 80 0 0 1 110 24" fill="none" stroke="rgba(191,233,219,.45)" stroke-width="1.8" stroke-linecap="round"/>
-      <g transform="rotate(${angle.toFixed(1)} 100 108)">
-        <line x1="100" y1="44" x2="100" y2="105" stroke="#f5f8fc" stroke-width="2.4" stroke-linecap="round"/>
-        <circle cx="100" cy="44" r="4" fill="#bfe9db"/>
+      <path d="M48 116 A68 68 0 1 1 152 116" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9" stroke-linecap="round"/>
+      <path d="M48 116 A68 68 0 0 1 100 20" fill="none" stroke="rgba(56,189,248,.35)" stroke-width="1.8" stroke-linecap="round"/>
+      <g transform="rotate(${angle.toFixed(1)} 100 78)">
+        <line x1="100" y1="28" x2="100" y2="76" stroke="#f4f7fc" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="100" cy="28" r="3.2" fill="#38bdf8"/>
       </g>
-      <circle cx="100" cy="108" r="5" fill="#0d1524" stroke="#f5f8fc" stroke-width="1.4"/>
-      <text x="100" y="136" text-anchor="middle" fill="#f4f7fc" font-size="22" font-weight="350" letter-spacing="-.6">${escapeHtml(
+      <circle cx="100" cy="78" r="4.5" fill="#080e1a" stroke="#f4f7fc" stroke-width="1.5"/>
+      <text x="100" y="108" text-anchor="middle" fill="#f4f7fc" font-size="19" font-weight="500" letter-spacing="-.5">${escapeHtml(
         formatPressure(pressure, units, locale),
       )}</text>
-      <text x="26" y="88" fill="rgba(255,255,255,.28)" font-size="7">970</text>
-      <text x="174" y="88" text-anchor="end" fill="rgba(255,255,255,.28)" font-size="7">1050</text>
+      <text x="46" y="130" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="7.5">970</text>
+      <text x="154" y="130" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="7.5">1050</text>
     </svg>
-    <span class="gauge-trend">${uiIcon(trendIcon, 13)} ${escapeHtml(
-      translate(`details.${trend}`),
-    )}</span>
+    <div class="gauge-trend-wrap">
+      <span class="gauge-trend">${uiIcon(trendIcon, 12)} ${escapeHtml(
+        translate(`details.${trend}`),
+      )}</span>
+    </div>
   </div>`;
 }
 
@@ -415,16 +415,16 @@ export function humidityDrop(value) {
           <path d="M60 12S96 56 96 76a36 36 0 0 1-72 0C24 56 60 12 60 12Z"/>
         </clipPath>
         <linearGradient id="drop-fill" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stop-color="#74b8de"/>
-          <stop offset="100%" stop-color="#b8e8f2"/>
+          <stop offset="0%" stop-color="#0284c7"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
         </linearGradient>
       </defs>
-      <path d="M60 12S96 56 96 76a36 36 0 0 1-72 0C24 56 60 12 60 12Z" fill="rgba(255,255,255,.045)" stroke="rgba(255,255,255,.13)"/>
+      <path d="M60 12S96 56 96 76a36 36 0 0 1-72 0C24 56 60 12 60 12Z" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.12)" stroke-width="1.2"/>
       <g clip-path="url(#drop-clip)">
         <rect x="18" y="${(120 - (pct / 100) * 100).toFixed(1)}" width="84" height="110" fill="url(#drop-fill)" opacity=".75"/>
-        <path d="M20 87c12-5 21 4 34 0s22-5 33 0 17 3 24 0v30H20Z" fill="#d7f4f6" opacity=".22"/>
+        <path d="M20 87c12-5 21 4 34 0s22-5 33 0 17 3 24 0v30H20Z" fill="#bae6fd" opacity=".25"/>
       </g>
-      <text x="60" y="82" text-anchor="middle" fill="#f4f8fc" font-size="19" font-weight="600">${Math.round(
+      <text x="60" y="80" text-anchor="middle" fill="#f4f7fc" font-size="19" font-weight="700" letter-spacing="-.5">${Math.round(
         pct,
       )}%</text>
     </svg>
