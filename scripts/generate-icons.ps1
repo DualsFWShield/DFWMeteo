@@ -50,7 +50,7 @@ function Export-DfwIcon {
         $dc.PushTransform($fgGroup)
     }
 
-    # 2. Tech Shield
+    # 2. Tech Shield Base
     $shieldBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x0f, 0x17, 0x2a))
     $shieldPen = New-Object System.Windows.Media.Pen(
         (New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x38, 0xbd, 0xf8))),
@@ -58,7 +58,10 @@ function Export-DfwIcon {
     )
     $shieldPen.LineJoin = [System.Windows.Media.PenLineJoin]::Round
     $shieldGeo = [System.Windows.Media.Geometry]::Parse("M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z")
-    $dc.DrawGeometry($shieldBrush, $shieldPen, $shieldGeo)
+    $dc.DrawGeometry($shieldBrush, $null, $shieldGeo)
+
+    # Push clip so weather glyphs can never spill outside the shield frame
+    $dc.PushClip($shieldGeo)
 
     # 3. Sun
     $sunBrush = New-Object System.Windows.Media.LinearGradientBrush(
@@ -84,6 +87,11 @@ function Export-DfwIcon {
     $boltBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0xfa, 0xcc, 0x15))
     $boltGeo = [System.Windows.Media.Geometry]::Parse("M 267 181 L 231 232 L 256 232 L 242 282 L 288 217 L 260 217 Z")
     $dc.DrawGeometry($boltBrush, $null, $boltGeo)
+
+    $dc.Pop() # Pop shield clip
+
+    # Shield border stroke on top of clipped content
+    $dc.DrawGeometry($null, $shieldPen, $shieldGeo)
 
     if ($Type -eq "foreground") {
         $dc.Pop() # Pop foreground transform

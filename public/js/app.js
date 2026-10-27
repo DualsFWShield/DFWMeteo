@@ -220,17 +220,22 @@ async function syncNativeWidget(place, weather) {
     const city = displayName(place) || place.name || "Bruxelles";
     const lat = String(place.latitude);
     const lon = String(place.longitude);
-    const temp = weather?.current
-      ? `${Math.round(tempValue(weather.current.temperature, state.units))}°`
+    const rawTemp = weather?.current?.temp ?? weather?.current?.temperature;
+    const temp = rawTemp != null
+      ? `${Math.round(tempValue(rawTemp, state.units))}°`
       : "--°";
-    const condition = weather?.current
+    const condition = weather?.current?.code != null
       ? tr(`wx.${weatherKey(weather.current.code)}`)
       : "DFWMeteo";
     const today = weather?.daily?.[0];
-    const highLow = today
-      ? `Max ${Math.round(tempValue(today.tempMax, state.units))}° · Min ${Math.round(tempValue(today.tempMin, state.units))}°`
+    const maxVal = today?.max ?? today?.tempMax;
+    const minVal = today?.min ?? today?.tempMin;
+    const highLow = maxVal != null && minVal != null
+      ? `Max ${Math.round(tempValue(maxVal, state.units))}° · Min ${Math.round(tempValue(minVal, state.units))}°`
       : "Max --° · Min --°";
-    const agreement = weather?.meta?.agreement != null ? Math.round(weather.meta.agreement * 100) : 90;
+    const agreement = weather?.meta?.agreement != null
+      ? Math.round(weather.meta.agreement * 100)
+      : (weather?.current?.agreement ?? 90);
     const consensus = `Consensus 12 modèles · ${agreement}%`;
     const updated = weather?.current?.time
       ? formatHour(weather.current.time, state.locale)
@@ -2932,6 +2937,7 @@ async function changePlace(place) {
     state.status = "ready";
     state.cached = true;
     renderApp();
+    syncNativeWidget(normalized, cached);
   } else {
     state.weather = null;
     state.status = "loading";
@@ -2971,6 +2977,7 @@ async function requestWeather({ silent = false, initial = false, notify = false,
     saveWeatherCache(state.place, payload);
     saveLastPlace(state.place);
     writePlaceToUrl(state.place);
+    syncNativeWidget(state.place, payload);
     renderApp();
     if (notify) showToast(tr("toast.refreshed"), "success");
   } catch (error) {
@@ -3423,6 +3430,7 @@ async function init() {
     state.status = "ready";
     state.lastRenderedMinute = localTimeParts(cached).minutes;
     renderApp();
+    syncNativeWidget(initialPlace, cached);
   } else {
     state.status = "booting";
     updateBootText();

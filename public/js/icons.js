@@ -184,8 +184,8 @@ export function weatherGlyph(code, isDay, size = "md", className = "", label = "
 }
 
 export function brandMark(size = 26) {
-  const height = Math.round((size * 82) / 80);
-  return `<svg class="brand-mark" width="${size}" height="${height}" viewBox="0 0 80 82" fill="none" aria-hidden="true" focusable="false">
+  const height = Math.round((size * 9) / 8);
+  return `<svg class="brand-mark" width="${size}" height="${height}" viewBox="128 36 256 288" fill="none" aria-hidden="true" focusable="false">
     <defs>
       <linearGradient id="nav-sun" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#fde047" />
@@ -195,11 +195,22 @@ export function brandMark(size = 26) {
         <stop offset="0%" stop-color="#38bdf8" />
         <stop offset="100%" stop-color="#0284c7" />
       </linearGradient>
+      <clipPath id="bm-shield-clip">
+        <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" />
+      </clipPath>
     </defs>
-    <path d="M 40 4 L 72 16 V 42 C 72 62 58 73 40 78 C 22 73 8 62 8 42 V 16 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" />
-    <circle cx="50" cy="30" r="12" fill="url(#nav-sun)" />
-    <path d="M 23 54 A 9 9 0 0 1 23 36 A 16 16 0 0 1 54 32 A 11 11 0 0 1 58 54 Z" fill="url(#nav-cloud)" />
-    <path d="M 43 41 L 33 55 L 40 55 L 36 69 L 49 51 L 41 51 Z" fill="#facc15" />
+    <!-- Bouclier tech fond -->
+    <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="#0f172a" />
+    
+    <!-- Contenu météo protégé contre tout débordement -->
+    <g clip-path="url(#bm-shield-clip)">
+      <circle cx="292" cy="142" r="43" fill="url(#nav-sun)" />
+      <path d="M 195 228 A 32.5 32.5 0 0 1 195 163 A 58 58 0 0 1 306 149 A 40 40 0 0 1 321 228 Z" fill="url(#nav-cloud)" />
+      <path d="M 267 181 L 231 232 L 256 232 L 242 282 L 288 217 L 260 217 Z" fill="#facc15" />
+    </g>
+
+    <!-- Bordure du bouclier au premier plan -->
+    <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linejoin="round" />
   </svg>`;
 }
 

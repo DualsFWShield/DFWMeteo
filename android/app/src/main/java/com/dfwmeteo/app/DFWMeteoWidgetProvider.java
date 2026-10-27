@@ -113,8 +113,10 @@ public class DFWMeteoWidgetProvider extends AppWidgetProvider {
                 URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(8000);
+                conn.setRequestProperty("User-Agent", "DFWMeteo/1.0");
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setConnectTimeout(9000);
+                conn.setReadTimeout(9000);
 
                 if (conn.getResponseCode() == 200) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -129,8 +131,8 @@ public class DFWMeteoWidgetProvider extends AppWidgetProvider {
                     JSONObject current = json.optJSONObject("current");
                     JSONObject daily = json.optJSONObject("daily");
 
-                    if (current != null) {
-                        double t = current.optDouble("temperature_2m", 0);
+                    if (current != null && current.has("temperature_2m")) {
+                        double t = current.getDouble("temperature_2m");
                         int code = current.optInt("weather_code", 0);
                         int isDay = current.optInt("is_day", 1);
                         String tempStr = Math.round(t) + "°";
@@ -141,8 +143,8 @@ public class DFWMeteoWidgetProvider extends AppWidgetProvider {
                             JSONArray maxArr = daily.optJSONArray("temperature_2m_max");
                             JSONArray minArr = daily.optJSONArray("temperature_2m_min");
                             if (maxArr != null && minArr != null && maxArr.length() > 0 && minArr.length() > 0) {
-                                long maxT = Math.round(maxArr.optDouble(0, 0));
-                                long minT = Math.round(minArr.optDouble(0, 0));
+                                long maxT = Math.round(maxArr.getDouble(0));
+                                long minT = Math.round(minArr.getDouble(0));
                                 highLowStr = "Max " + maxT + "° · Min " + minT + "°";
                             }
                         }

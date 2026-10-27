@@ -17,6 +17,11 @@
       <stop offset="0%" stop-color="#38bdf8" />
       <stop offset="100%" stop-color="#0284c7" />
     </linearGradient>
+
+    <!-- Masque de protection du bouclier -->
+    <clipPath id="sq-shield-clip">
+      <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" />
+    </clipPath>
   </defs>
 
   <!-- Fond Carré Arrondi (Squircle) -->
@@ -25,17 +30,18 @@
 
   <!-- Icône Bouclier (Centrée en haut) -->
   <g>
-    <!-- Bouclier Tech -->
-    <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="9" stroke-linejoin="round" />
+    <!-- Bouclier Tech Fond -->
+    <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="#0f172a" />
     
-    <!-- Soleil -->
-    <circle cx="292" cy="142" r="43" fill="url(#sq-sun)" />
-    
-    <!-- Nuage -->
-    <path d="M 195 228 A 32.5 32.5 0 0 1 195 163 A 58 58 0 0 1 306 149 A 40 40 0 0 1 321 228 Z" fill="url(#sq-cloud)" />
-    
-    <!-- Éclair -->
-    <path d="M 267 181 L 231 232 L 256 232 L 242 282 L 288 217 L 260 217 Z" fill="#facc15" />
+    <!-- Contenu météo masqué -->
+    <g clip-path="url(#sq-shield-clip)">
+      <circle cx="292" cy="142" r="43" fill="url(#sq-sun)" />
+      <path d="M 195 228 A 32.5 32.5 0 0 1 195 163 A 58 58 0 0 1 306 149 A 40 40 0 0 1 321 228 Z" fill="url(#sq-cloud)" />
+      <path d="M 267 181 L 231 232 L 256 232 L 242 282 L 288 217 L 260 217 Z" fill="#facc15" />
+    </g>
+
+    <!-- Bordure du bouclier au premier plan -->
+    <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linejoin="round" />
   </g>
 
   <!-- Typographie DFWMeteo centrée -->

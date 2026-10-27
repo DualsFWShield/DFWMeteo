@@ -47,11 +47,19 @@
         <div class="boot-orbit" aria-hidden="true">
           <span></span><span></span><span></span>
           <i></i>
-          <svg class="boot-shield" width="48" height="50" viewBox="0 0 80 82" fill="none">
-            <path d="M 40 4 L 72 16 V 42 C 72 62 58 73 40 78 C 22 73 8 62 8 42 V 16 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" />
-            <circle cx="50" cy="30" r="12" fill="url(#dfw-brand-sun)" />
-            <path d="M 23 54 A 9 9 0 0 1 23 36 A 16 16 0 0 1 54 32 A 11 11 0 0 1 58 54 Z" fill="url(#dfw-brand-cloud)" />
-            <path d="M 43 41 L 33 55 L 40 55 L 36 69 L 49 51 L 41 51 Z" fill="#facc15" />
+          <svg class="boot-shield" width="48" height="54" viewBox="128 36 256 288" fill="none">
+            <defs>
+              <clipPath id="boot-shield-clip">
+                <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" />
+              </clipPath>
+            </defs>
+            <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="#0f172a" />
+            <g clip-path="url(#boot-shield-clip)">
+              <circle cx="292" cy="142" r="43" fill="url(#dfw-brand-sun)" />
+              <path d="M 195 228 A 32.5 32.5 0 0 1 195 163 A 58 58 0 0 1 306 149 A 40 40 0 0 1 321 228 Z" fill="url(#dfw-brand-cloud)" />
+              <path d="M 267 181 L 231 232 L 256 232 L 242 282 L 288 217 L 260 217 Z" fill="#facc15" />
+            </g>
+            <path d="M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linejoin="round" />
           </svg>
         </div>
         <p class="boot-brand"><b>DFW</b><em>Meteo</em></p>
