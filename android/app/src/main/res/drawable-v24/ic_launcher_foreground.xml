@@ -18,7 +18,7 @@
         <!-- Sun -->
         <path
             android:fillColor="#f59e0b"
-            android:pathData="M 292,99 A 43,43 0 1,0 292,185 A 43,43 0 1,0 292,99 Z" />
+            android:pathData="M 249,142 a 43,43 0 1,0 86,0 a 43,43 0 1,0 -86,0" />
         <!-- Cloud -->
         <path
             android:fillColor="#0284c7"

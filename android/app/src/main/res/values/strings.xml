@@ -4,4 +4,6 @@
     <string name="title_activity_main">DFWMeteo</string>
     <string name="package_name">com.dfwmeteo.app</string>
     <string name="custom_url_scheme">com.dfwmeteo.app</string>
+    <string name="widget_name">DFWMeteo</string>
+    <string name="widget_description">Aperçu météo en direct avec consensus multi-modèles.</string>
 </resources>

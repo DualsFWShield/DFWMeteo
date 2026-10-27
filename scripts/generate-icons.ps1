@@ -1,172 +1,169 @@
-Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase
 
-function Create-BrandIcon {
+function Export-DfwIcon {
     param(
-        [int]$Size,
+        [int]$TargetSize,
         [string]$Type = "squircle", # squircle, round, foreground, splash
-        [string]$OutPath
+        [string]$OutFile
     )
 
-    $bmp = New-Object System.Drawing.Bitmap $Size, $Size
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+    $visual = New-Object System.Windows.Media.DrawingVisual
+    $dc = $visual.RenderOpen()
 
-    $scale = $Size / 512.0
+    $scale = $TargetSize / 512.0
+    $transform = New-Object System.Windows.Media.TransformGroup
+    $transform.Children.Add((New-Object System.Windows.Media.ScaleTransform($scale, $scale)))
 
-    if ($Type -eq "foreground") {
-        $g.Clear([System.Drawing.Color]::Transparent)
-    } elseif ($Type -eq "splash") {
-        $g.Clear([System.Drawing.Color]::FromArgb(255, 11, 18, 32))
-    } else {
-        $g.Clear([System.Drawing.Color]::Transparent)
-        # Background
-        $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-            (New-Object System.Drawing.PointF 0, 0),
-            (New-Object System.Drawing.PointF $Size, $Size),
-            [System.Drawing.Color]::FromArgb(255, 11, 17, 32),
-            [System.Drawing.Color]::FromArgb(255, 15, 23, 42)
+    $dc.PushTransform($transform)
+
+    # 1. Background (if not foreground)
+    if ($Type -ne "foreground") {
+        $bgBrush = New-Object System.Windows.Media.LinearGradientBrush(
+            [System.Windows.Media.Color]::FromRgb(0x0b, 0x11, 0x20),
+            [System.Windows.Media.Color]::FromRgb(0x0f, 0x17, 0x2a),
+            (New-Object System.Windows.Point(0, 0)),
+            (New-Object System.Windows.Point(1, 1))
+        )
+        $borderPen = New-Object System.Windows.Media.Pen(
+            (New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x1e, 0x29, 0x3b))),
+            6.0
         )
 
         if ($Type -eq "round") {
-            $g.FillEllipse($bgBrush, 0, 0, $Size, $Size)
-            $borderPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 30, 41, 59), [Math]::Max(1.0, (4.0 * $scale)))
-            $g.DrawEllipse($borderPen, (2.0 * $scale), (2.0 * $scale), ($Size - 4.0 * $scale), ($Size - 4.0 * $scale))
-            $borderPen.Dispose()
+            $dc.DrawEllipse($bgBrush, $borderPen, (New-Object System.Windows.Point(256, 256)), 253, 253)
+        } elseif ($Type -eq "splash") {
+            $splashBg = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x07, 0x0b, 0x14))
+            $dc.DrawRectangle($splashBg, $null, (New-Object System.Windows.Rect(0, 0, 512, 512)))
         } else {
-            # Squircle
-            $rectPath = New-Object System.Drawing.Drawing2D.GraphicsPath
-            $r = 110.0 * $scale
-            $d = $r * 2.0
-            $w = [float]$Size
-            $h = [float]$Size
-            $rectPath.AddArc(0, 0, $d, $d, 180, 90)
-            $rectPath.AddArc(($w - $d), 0, $d, $d, 270, 90)
-            $rectPath.AddArc(($w - $d), ($h - $d), $d, $d, 0, 90)
-            $rectPath.AddArc(0, ($h - $d), $d, $d, 90, 90)
-            $rectPath.CloseFigure()
-            $g.FillPath($bgBrush, $rectPath)
-
-            $borderPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 30, 41, 59), [Math]::Max(1.0, (4.0 * $scale)))
-            $g.DrawPath($borderPen, $rectPath)
-            $borderPen.Dispose()
-            $rectPath.Dispose()
+            # Squircle: rect with rx=110
+            $dc.DrawRoundedRectangle($bgBrush, $borderPen, (New-Object System.Windows.Rect(3, 3, 506, 506)), 110, 110)
         }
-        $bgBrush.Dispose()
     }
 
-    # Content transformation
-    $contentMatrix = New-Object System.Drawing.Drawing2D.Matrix
-    $contentMatrix.Scale($scale, $scale)
+    # Transform for content
+    if ($Type -eq "foreground") {
+        $fgGroup = New-Object System.Windows.Media.TransformGroup
+        # Center shield (Y: 48..314, mid=181 -> shift to 256, so +75)
+        $fgGroup.Children.Add((New-Object System.Windows.Media.TranslateTransform(0, 75)))
+        # Scale to 0.95 inside safe area
+        $fgGroup.Children.Add((New-Object System.Windows.Media.ScaleTransform(0.95, 0.95, 256, 256)))
+        $dc.PushTransform($fgGroup)
+    }
+
+    # 2. Tech Shield
+    $shieldBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x0f, 0x17, 0x2a))
+    $shieldPen = New-Object System.Windows.Media.Pen(
+        (New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x38, 0xbd, 0xf8))),
+        9.0
+    )
+    $shieldPen.LineJoin = [System.Windows.Media.PenLineJoin]::Round
+    $shieldGeo = [System.Windows.Media.Geometry]::Parse("M 256 48 L 372 92 V 185 C 372 257 321 296 256 314 C 191 296 140 257 140 185 V 92 Z")
+    $dc.DrawGeometry($shieldBrush, $shieldPen, $shieldGeo)
+
+    # 3. Sun
+    $sunBrush = New-Object System.Windows.Media.LinearGradientBrush(
+        [System.Windows.Media.Color]::FromRgb(0xfd, 0xe0, 0x47),
+        [System.Windows.Media.Color]::FromRgb(0xf9, 0x73, 0x16),
+        (New-Object System.Windows.Point(0, 0)),
+        (New-Object System.Windows.Point(1, 1))
+    )
+    $sunGeo = New-Object System.Windows.Media.EllipseGeometry((New-Object System.Windows.Point(292, 142)), 43, 43)
+    $dc.DrawGeometry($sunBrush, $null, $sunGeo)
+
+    # 4. Signature Cloud (Exact SVG geometry)
+    $cloudBrush = New-Object System.Windows.Media.LinearGradientBrush(
+        [System.Windows.Media.Color]::FromRgb(0x38, 0xbd, 0xf8),
+        [System.Windows.Media.Color]::FromRgb(0x02, 0x84, 0xc7),
+        (New-Object System.Windows.Point(0, 0)),
+        (New-Object System.Windows.Point(1, 1))
+    )
+    $cloudGeo = [System.Windows.Media.Geometry]::Parse("M 195 228 A 32.5 32.5 0 0 1 195 163 A 58 58 0 0 1 306 149 A 40 40 0 0 1 321 228 Z")
+    $dc.DrawGeometry($cloudBrush, $null, $cloudGeo)
+
+    # 5. Lightning Bolt
+    $boltBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0xfa, 0xcc, 0x15))
+    $boltGeo = [System.Windows.Media.Geometry]::Parse("M 267 181 L 231 232 L 256 232 L 242 282 L 288 217 L 260 217 Z")
+    $dc.DrawGeometry($boltBrush, $null, $boltGeo)
 
     if ($Type -eq "foreground") {
-        # Safe zone for adaptive icon foreground: 66% diameter at center (256, 256)
-        # Shift down slightly and scale so shield and weather glyph sit perfectly in the safe zone
-        $contentMatrix.Translate(256, 256)
-        $contentMatrix.Scale(0.85, 0.85)
-        $contentMatrix.Translate(-256, -210)
+        $dc.Pop() # Pop foreground transform
     }
 
-    $g.Transform = $contentMatrix
-
-    # 1. Tech Shield Path
-    $shieldPath = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $shieldPath.AddLine(256, 48, 372, 92)
-    $shieldPath.AddLine(372, 92, 372, 185)
-    $shieldPath.AddBezier(372, 185, 372, 257, 321, 296, 256, 314)
-    $shieldPath.AddBezier(256, 314, 191, 296, 140, 257, 140, 185)
-    $shieldPath.AddLine(140, 185, 140, 92)
-    $shieldPath.CloseFigure()
-
-    $shieldFill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 15, 23, 42))
-    $shieldPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 56, 189, 248), 9)
-    $shieldPen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-
-    $g.FillPath($shieldFill, $shieldPath)
-    $g.DrawPath($shieldPen, $shieldPath)
-    $shieldFill.Dispose()
-    $shieldPen.Dispose()
-    $shieldPath.Dispose()
-
-    # 2. Sun
-    $sunBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-        (New-Object System.Drawing.PointF 249, 99),
-        (New-Object System.Drawing.PointF 335, 185),
-        [System.Drawing.Color]::FromArgb(255, 253, 224, 71),
-        [System.Drawing.Color]::FromArgb(255, 249, 115, 22)
-    )
-    $g.FillEllipse($sunBrush, (292 - 43), (142 - 43), 86, 86)
-    $sunBrush.Dispose()
-
-    # 3. Cloud
-    $cloudBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-        (New-Object System.Drawing.PointF 162, 140),
-        (New-Object System.Drawing.PointF 321, 228),
-        [System.Drawing.Color]::FromArgb(255, 56, 189, 248),
-        [System.Drawing.Color]::FromArgb(255, 2, 132, 199)
-    )
-    $cloudPath = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $cloudPath.AddEllipse((195 - 32.5), (200 - 32.5), 65, 65)
-    $cloudPath.AddEllipse((250 - 58), (170 - 58), 116, 116)
-    $cloudPath.AddEllipse((295 - 40), (195 - 40), 80, 80)
-    $cloudPath.AddRectangle((New-Object System.Drawing.RectangleF 180, 185, 125, 43))
-    $g.FillPath($cloudBrush, $cloudPath)
-    $cloudBrush.Dispose()
-    $cloudPath.Dispose()
-
-    # 4. Lightning
-    $boltBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 250, 204, 21))
-    $boltPoints = @(
-        (New-Object System.Drawing.PointF 267, 181),
-        (New-Object System.Drawing.PointF 231, 232),
-        (New-Object System.Drawing.PointF 256, 232),
-        (New-Object System.Drawing.PointF 242, 282),
-        (New-Object System.Drawing.PointF 288, 217),
-        (New-Object System.Drawing.PointF 260, 217)
-    )
-    $g.FillPolygon($boltBrush, $boltPoints)
-    $boltBrush.Dispose()
-
-    # 5. DFWMeteo Text & Accents (if not foreground)
+    # 6. Typography & Accent Bars (for non-foreground icons)
     if ($Type -ne "foreground") {
-        $fontBold = New-Object System.Drawing.Font("Segoe UI", 60, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-        $fontReg = New-Object System.Drawing.Font("Segoe UI", 60, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+        $typefaceBold = New-Object System.Windows.Media.Typeface(
+            (New-Object System.Windows.Media.FontFamily("Segoe UI, system-ui, -apple-system, sans-serif")),
+            [System.Windows.FontStyles]::Normal,
+            [System.Windows.FontWeights]::ExtraBold,
+            [System.Windows.FontStretches]::Normal
+        )
+        $typefaceReg = New-Object System.Windows.Media.Typeface(
+            (New-Object System.Windows.Media.FontFamily("Segoe UI, system-ui, -apple-system, sans-serif")),
+            [System.Windows.FontStyles]::Normal,
+            [System.Windows.FontWeights]::Normal,
+            [System.Windows.FontStretches]::Normal
+        )
 
-        $whiteBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 248, 250, 252))
-        $cyanBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 56, 189, 248))
+        $whiteBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0xf8, 0xfa, 0xfc))
+        $cyanBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x38, 0xbd, 0xf8))
 
-        $sf = New-Object System.Drawing.StringFormat
-        $sf.Alignment = [System.Drawing.StringAlignment]::Near
-        $sf.LineAlignment = [System.Drawing.StringAlignment]::Center
+        $ftDfw = New-Object System.Windows.Media.FormattedText(
+            "DFW",
+            [System.Globalization.CultureInfo]::InvariantCulture,
+            [System.Windows.FlowDirection]::LeftToRight,
+            $typefaceBold,
+            72,
+            $whiteBrush,
+            1.25
+        )
+        $ftMeteo = New-Object System.Windows.Media.FormattedText(
+            "Meteo",
+            [System.Globalization.CultureInfo]::InvariantCulture,
+            [System.Windows.FlowDirection]::LeftToRight,
+            $typefaceReg,
+            72,
+            $cyanBrush,
+            1.25
+        )
 
-        $g.DrawString("DFW", $fontBold, $whiteBrush, 90, 400, $sf)
-        $g.DrawString("Meteo", $fontReg, $cyanBrush, 230, 400, $sf)
+        $totalTextWidth = $ftDfw.Width + $ftMeteo.Width
+        $startX = (512.0 - $totalTextWidth) / 2.0
+        $textY = 358.0
 
-        $fontBold.Dispose()
-        $fontReg.Dispose()
-        $whiteBrush.Dispose()
-        $cyanBrush.Dispose()
-        $sf.Dispose()
+        $dc.DrawText($ftDfw, (New-Object System.Windows.Point($startX, $textY)))
+        $dc.DrawText($ftMeteo, (New-Object System.Windows.Point(($startX + $ftDfw.Width), $textY)))
 
-        $barOrange = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 245, 158, 11))
-        $barCyan = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(180, 56, 189, 248))
-        $g.FillRectangle($barOrange, 166, 434, 126, 8)
-        $g.FillRectangle($barCyan, 306, 434, 40, 8)
-        $barOrange.Dispose()
-        $barCyan.Dispose()
+        # Bars
+        $orangeBarBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0xf5, 0x9e, 0x0b))
+        $cyanBarBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromArgb(160, 0x38, 0xbd, 0xf8))
+
+        $barY = 442.0
+        $dc.DrawRoundedRectangle($orangeBarBrush, $null, (New-Object System.Windows.Rect($startX, $barY, ($ftDfw.Width + 4), 8)), 4, 4)
+        $dc.DrawRoundedRectangle($cyanBarBrush, $null, (New-Object System.Windows.Rect(($startX + $ftDfw.Width + 14), $barY, 40, 8)), 4, 4)
     }
 
-    $outDir = [System.IO.Path]::GetDirectoryName($OutPath)
-    if (-not [System.IO.Directory]::Exists($outDir)) {
-        [System.IO.Directory]::CreateDirectory($outDir) | Out-Null
+    $dc.Pop() # Pop scale transform
+    $dc.Close()
+
+    $rtb = New-Object System.Windows.Media.Imaging.RenderTargetBitmap(
+        $TargetSize,
+        $TargetSize,
+        96,
+        96,
+        [System.Windows.Media.PixelFormats]::Pbgra32
+    )
+    $rtb.Render($visual)
+
+    $dir = [System.IO.Path]::GetDirectoryName($OutFile)
+    if (-not [System.IO.Directory]::Exists($dir)) {
+        [System.IO.Directory]::CreateDirectory($dir) | Out-Null
     }
 
-    $bmp.Save($OutPath, [System.Drawing.Imaging.ImageFormat]::Png)
-    $g.Dispose()
-    $bmp.Dispose()
-    $contentMatrix.Dispose()
+    $encoder = New-Object System.Windows.Media.Imaging.PngBitmapEncoder
+    $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($rtb))
+    $outStream = [System.IO.File]::Create($OutFile)
+    $encoder.Save($outStream)
+    $outStream.Close()
 }
 
 $densities = @(
@@ -177,21 +174,21 @@ $densities = @(
     @{ name = "xxxhdpi"; launcher = 192; foreground = 432 }
 )
 
-Write-Host "Generating Android mipmap icons..."
+Write-Host "Regenerating Android mipmap icons with exact SVG geometry..."
 foreach ($d in $densities) {
     $folder = "android/app/src/main/res/mipmap-" + $d.name
-    Create-BrandIcon -Size $d.launcher -Type "squircle" -OutPath ($folder + "/ic_launcher.png")
-    Create-BrandIcon -Size $d.launcher -Type "round" -OutPath ($folder + "/ic_launcher_round.png")
-    Create-BrandIcon -Size $d.foreground -Type "foreground" -OutPath ($folder + "/ic_launcher_foreground.png")
+    Export-DfwIcon -TargetSize $d.launcher -Type "squircle" -OutFile ($folder + "/ic_launcher.png")
+    Export-DfwIcon -TargetSize $d.launcher -Type "round" -OutFile ($folder + "/ic_launcher_round.png")
+    Export-DfwIcon -TargetSize $d.foreground -Type "foreground" -OutFile ($folder + "/ic_launcher_foreground.png")
     Write-Host "Generated $folder"
 }
 
-Write-Host "Generating PWA icons..."
-Create-BrandIcon -Size 192 -Type "squircle" -OutPath "public/icon-192.png"
-Create-BrandIcon -Size 512 -Type "squircle" -OutPath "public/icon-512.png"
+Write-Host "Regenerating PWA and Web icons..."
+Export-DfwIcon -TargetSize 192 -Type "squircle" -OutFile "public/icon-192.png"
+Export-DfwIcon -TargetSize 512 -Type "squircle" -OutFile "public/icon-512.png"
 
-Write-Host "Generating Splash screens..."
-Create-BrandIcon -Size 512 -Type "splash" -OutPath "android/app/src/main/res/drawable/splash.png"
+Write-Host "Regenerating Splash screens..."
+Export-DfwIcon -TargetSize 512 -Type "splash" -OutFile "android/app/src/main/res/drawable/splash.png"
 $splashFolders = @(
     "drawable-port-mdpi", "drawable-port-hdpi", "drawable-port-xhdpi", "drawable-port-xxhdpi", "drawable-port-xxxhdpi",
     "drawable-land-mdpi", "drawable-land-hdpi", "drawable-land-xhdpi", "drawable-land-xxhdpi", "drawable-land-xxxhdpi"
@@ -201,5 +198,7 @@ foreach ($sf in $splashFolders) {
     Copy-Item "android/app/src/main/res/drawable/splash.png" $p -Force
 }
 
-Write-Host "All icons generated successfully!"
+# Update widget preview with the clean 512 squircle
+Copy-Item "public/icon-512.png" "android/app/src/main/res/drawable/widget_preview.png" -Force
 
+Write-Host "All icons regenerated with 100% exact SVG paths!"

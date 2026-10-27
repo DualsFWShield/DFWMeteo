@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="80"
+    android:viewportHeight="80">
+    <!-- Sun -->
+    <path
+        android:fillColor="#f59e0b"
+        android:pathData="M 38,30 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0" />
+    <!-- Cloud -->
+    <path
+        android:fillColor="#38bdf8"
+        android:pathData="M 23,54 A 9,9 0 0,1 23,36 A 16,16 0 0,1 54,32 A 11,11 0 0,1 58,54 Z" />
+    <!-- Lightning -->
+    <path
+        android:fillColor="#facc15"
+        android:pathData="M 43,41 L 33,55 L 40,55 L 36,69 L 49,51 L 41,51 Z" />
+</vector>

@@ -1,5 +1,6 @@
 package com.dfwmeteo.app;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.webkit.WebView;
@@ -12,6 +13,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(DFWMeteoWidgetPlugin.class);
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
@@ -56,5 +58,34 @@ public class MainActivity extends BridgeActivity {
 
             return insets;
         });
+
+        handleWidgetIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleWidgetIntent(intent);
+    }
+
+    private void handleWidgetIntent(Intent intent) {
+        if (intent != null && intent.getBooleanExtra("from_widget", false)) {
+            String lat = intent.getStringExtra("lat");
+            String lon = intent.getStringExtra("lon");
+            String city = intent.getStringExtra("city");
+            if (lat != null && lon != null) {
+                String js = String.format(
+                    java.util.Locale.US,
+                    "window.__dfwmeteo_pending_place = { latitude: %s, longitude: %s, name: '%s' };" +
+                    "if (typeof window.__dfwmeteo_change_place === 'function') { window.__dfwmeteo_change_place(window.__dfwmeteo_pending_place); }",
+                    lat, lon, (city != null ? city.replace("'", "\\'") : "Selected location")
+                );
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    WebView webView = getBridge().getWebView();
+                    webView.postDelayed(() -> webView.evaluateJavascript(js, null), 300);
+                }
+            }
+        }
     }
 }

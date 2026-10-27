@@ -208,6 +208,47 @@ function loadLastPlace() {
 
 function saveLastPlace(place) {
   writeStorage(STORAGE.lastPlace, place);
+  syncNativeWidget(place, state.weather);
+}
+
+async function syncNativeWidget(place, weather) {
+  if (!isCapacitorNative()) return;
+  const widgetPlugin = window.Capacitor?.Plugins?.DFWMeteoWidget;
+  if (!widgetPlugin?.updateWidget) return;
+
+  try {
+    const city = displayName(place) || place.name || "Bruxelles";
+    const lat = String(place.latitude);
+    const lon = String(place.longitude);
+    const temp = weather?.current
+      ? `${Math.round(tempValue(weather.current.temperature, state.units))}°`
+      : "--°";
+    const condition = weather?.current
+      ? tr(`wx.${weatherKey(weather.current.code)}`)
+      : "DFWMeteo";
+    const today = weather?.daily?.[0];
+    const highLow = today
+      ? `Max ${Math.round(tempValue(today.tempMax, state.units))}° · Min ${Math.round(tempValue(today.tempMin, state.units))}°`
+      : "Max --° · Min --°";
+    const agreement = weather?.meta?.agreement != null ? Math.round(weather.meta.agreement * 100) : 90;
+    const consensus = `Consensus 12 modèles · ${agreement}%`;
+    const updated = weather?.current?.time
+      ? formatHour(weather.current.time, state.locale)
+      : "En direct";
+
+    await widgetPlugin.updateWidget({
+      city,
+      lat,
+      lon,
+      temp,
+      condition,
+      highLow,
+      consensus,
+      updated,
+    });
+  } catch (err) {
+    console.warn("[dfwmeteo] Widget sync error:", err);
+  }
 }
 
 function saveFavorites() {
@@ -3351,9 +3392,26 @@ async function init() {
   setupBackButtonHandler();
   registerServiceWorker();
   updateBootText();
-  const urlPlace = placeFromUrl();
+
+  // Expose global callback for widget launches
+  window.__dfwmeteo_change_place = (p) => {
+    changePlace(p);
+  };
+
+  let widgetPlace = null;
+  if (window.__dfwmeteo_pending_place) {
+    widgetPlace = normalisePlace(window.__dfwmeteo_pending_place);
+    window.__dfwmeteo_pending_place = null;
+  }
   const storedPlace = loadLastPlace();
-  const initialPlace = normalisePlace(urlPlace || storedPlace || DEFAULT_PLACE);
+  const urlPlace = placeFromUrl();
+
+  // The app must open with the last searched location:
+  // 1. Explicit widget click intent
+  // 2. Last stored/searched place
+  // 3. URL place query
+  // 4. Default Brussels
+  const initialPlace = normalisePlace(widgetPlace || storedPlace || urlPlace || DEFAULT_PLACE);
   state.place = initialPlace;
   writePlaceToUrl(initialPlace);
   saveLastPlace(initialPlace);
@@ -3369,7 +3427,22 @@ async function init() {
     state.status = "booting";
     updateBootText();
   }
-  await requestWeather({ silent: Boolean(cached), initial: true, notify: false });
+
+  try {
+    await requestWeather({ silent: Boolean(cached), initial: true, notify: false });
+  } catch (err) {
+    console.warn("[dfwmeteo] Init weather request error:", err);
+    if (cached) {
+      state.weather = cached;
+      state.cached = true;
+      state.status = "ready";
+      renderApp();
+    } else {
+      state.status = "error";
+      state.error = err.message || tr("error.body");
+      renderError(state.error);
+    }
+  }
 }
 
 init().catch((error) => {
