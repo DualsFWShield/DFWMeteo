@@ -104,11 +104,17 @@ export async function reverseGeocode(
       8000,
     );
 
+    let cleanAdmin = data.principalSubdivision;
+    if (cleanAdmin) {
+      const regionMatch = cleanAdmin.match(/^([^,]+),\s*(Région|Province|Gewest)$/i);
+      if (regionMatch) cleanAdmin = `${regionMatch[2]} ${regionMatch[1]}`;
+    }
+
     const value: Place = {
       name: data.city || data.locality || "Current location",
       country: data.countryName || "",
       countryCode: (data.countryCode || "").toUpperCase(),
-      admin1: data.principalSubdivision,
+      admin1: cleanAdmin,
       latitude,
       longitude,
     };

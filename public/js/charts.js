@@ -111,22 +111,28 @@ export function modelSpreadChart({
   if (metric === "rain") {
     min = 0;
     max = 100;
+    tickValues = [0, 25, 50, 75, 100];
+  } else if (metric === "temp") {
+    const rawMin = Math.min(...allValues);
+    const rawMax = Math.max(...allValues);
+    const marginTemp = 2;
+    const targetMin = rawMin - marginTemp;
+    const targetMax = rawMax + marginTemp;
+    const step = niceStep((targetMax - targetMin) / 4);
+    min = Math.floor(targetMin / step) * step;
+    max = Math.ceil(targetMax / step) * step;
+    const count = Math.max(2, Math.round((max - min) / step));
+    tickValues = Array.from({ length: count + 1 }, (_, index) => min + step * index);
   } else {
-    const padding = Math.max((max - min) * 0.18, metric === "temp" ? 0.8 : 2);
+    const padding = Math.max((max - min) * 0.18, 2);
     min -= padding;
     max += padding;
     if (metric === "wind") min = Math.max(0, min);
-    if (max - min < (metric === "temp" ? 3 : 4)) {
+    if (max - min < 4) {
       const middle = (min + max) / 2;
-      const half = metric === "temp" ? 1.6 : 3;
-      min = middle - half;
-      max = middle + half;
+      min = middle - 3;
+      max = middle + 3;
     }
-  }
-  let tickValues;
-  if (metric === "rain") {
-    tickValues = [0, 25, 50, 75, 100];
-  } else {
     const step = niceStep((max - min) / 4);
     const roundedMin = Math.floor(min / step) * step;
     const roundedMax = Math.ceil(max / step) * step;
@@ -314,6 +320,7 @@ export function precipBars(hourly, units = "metric", count = 24, locale = "en") 
 export function windCompass(direction, speed, gust, units, locale, translate) {
   const rotation = Number(direction) || 0;
   const cardinal = compassPoint(direction, locale);
+  const west = locale === "fr" ? "O" : "W";
   return `<div class="compass-wrap">
     <svg class="compass" viewBox="0 0 160 160" role="img" aria-label="${escapeHtml(
       `${translate("details.wind")} ${formatWindValue(speed, units, locale)}`,
@@ -330,7 +337,7 @@ export function windCompass(direction, speed, gust, units, locale, translate) {
         }).join("")}
       </g>
       <g class="compass-labels" fill="rgba(232,241,252,.75)" font-size="9.5" font-weight="700" text-anchor="middle">
-        <text x="80" y="36">N</text><text x="130" y="83.5">E</text><text x="80" y="132">S</text><text x="30" y="83.5">W</text>
+        <text x="80" y="36">N</text><text x="130" y="83.5">E</text><text x="80" y="132">S</text><text x="30" y="83.5">${west}</text>
       </g>
       <g transform="rotate(${rotation.toFixed(1)} 80 80)">
         <path d="M80 18 L86 42 L80 37 L74 42 Z" fill="#38bdf8"/>
@@ -469,9 +476,11 @@ export function humidityDrop(value) {
 
 export function visibilityBar(km, units, locale) {
   const value = clamp(Number(km) || 0, 0, 40);
-  const pct = (value / 40) * 100;
+  const pct = value <= 10
+    ? (value / 10) * 50
+    : 50 + ((value - 10) / 30) * 50;
   return `<div class="visibility-bar">
-    <div class="visibility-track"><span style="left:${pct}%"></span></div>
+    <div class="visibility-track"><span style="left:${pct.toFixed(1)}%"></span></div>
     <div class="visibility-labels"><span>0</span><span>${escapeHtml(
       formatVisibility(10, units, locale),
     )}</span><span>${escapeHtml(formatVisibility(40, units, locale))}</span></div>
@@ -547,10 +556,6 @@ export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }
       <circle cx="24" cy="104" r="2.2" fill="rgba(255,255,255,.45)"/>
       <circle cx="236" cy="104" r="2.2" fill="rgba(255,255,255,.45)"/>
     </svg>
-    <div class="sun-arc-labels">
-      <span>${escapeHtml(translate("sun.rise"))}<b>${escapeHtml(formatHour(sunrise))}</b></span>
-      <span>${escapeHtml(translate("sun.set"))}<b>${escapeHtml(formatHour(sunset))}</b></span>
-    </div>
   </div>`;
 }
 
@@ -571,14 +576,14 @@ export function nowcastBars(nowcast, units, translate) {
         return `<div class="nowcast-col">
           <span class="nowcast-value">${point.precipitation > 0 ? escapeHtml(formatPrecip(point.precipitation, units, "en", 2)) : ""}</span>
           <span class="nowcast-bar" style="--h:${height}%;--delay:${index * 45}ms"></span>
-          <span class="nowcast-time">${index === 0 ? escapeHtml(translate("common.now")) : escapeHtml(formatHour(point.time).slice(0, 2))}</span>
+          <span class="nowcast-time">${index === 0 ? escapeHtml(translate("common.now")) : escapeHtml(formatHour(point.time))}</span>
         </div>`;
       })
       .join("")}
   </div>`;
 }
 
-export function aqiSparkline(values) {
+export function aqiSparkline(values, weather, locale = "en", translate) {
   if (!values || values.length < 2) return "";
   const width = 240;
   const height = 48;
@@ -591,11 +596,25 @@ export function aqiSparkline(values) {
   }));
   const line = linePath(points);
   const area = `${line} L${width} ${height} L0 ${height} Z`;
-  return `<svg class="aqi-spark" viewBox="0 0 ${width} ${height}" aria-hidden="true">
-    <path d="${area}" fill="rgba(191,233,219,.07)"/>
-    <path d="${line}" fill="none" stroke="#bfe9db" stroke-width="1.5" stroke-linecap="round"/>
-    <circle cx="${points[0].x}" cy="${points[0].y}" r="2.4" fill="#bfe9db"/>
-  </svg>`;
+
+  const tickIndices = [0, 6, 12, 18, Math.min(23, values.length - 1)];
+  const tickLabels = tickIndices.map((idx, i) => {
+    if (i === 0) return translate ? translate("common.now") : "Maintenant";
+    const hourPoint = weather?.hourly?.[idx];
+    if (hourPoint?.time) return formatHour(hourPoint.time);
+    return `+${idx}h`;
+  });
+
+  return `<div class="aqi-spark-wrap">
+    <svg class="aqi-spark" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+      <path d="${area}" fill="rgba(191,233,219,.07)"/>
+      <path d="${line}" fill="none" stroke="#bfe9db" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="${points[0].x}" cy="${points[0].y}" r="2.4" fill="#bfe9db"/>
+    </svg>
+    <div class="aqi-spark-labels">
+      ${tickLabels.map((lbl) => `<span>${escapeHtml(lbl)}</span>`).join("")}
+    </div>
+  </div>`;
 }
 
 function timeToMinutes(iso) {

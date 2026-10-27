@@ -310,6 +310,16 @@ function isValidPlace(place) {
   );
 }
 
+function formatAdminName(admin) {
+  if (!admin) return "";
+  const clean = String(admin).trim();
+  const regionMatch = clean.match(/^([^,]+),\s*(Région|Province|Gewest)$/i);
+  if (regionMatch) return `${regionMatch[2]} ${regionMatch[1]}`;
+  const brabantMatch = clean.match(/^([^,]+),\s*(Brabant)$/i);
+  if (brabantMatch) return `${brabantMatch[2]} ${brabantMatch[1]}`;
+  return clean;
+}
+
 function normalisePlace(place) {
   return {
     ...place,
@@ -318,7 +328,7 @@ function normalisePlace(place) {
     countryCode: String(place.countryCode || "").toUpperCase().slice(0, 3),
     latitude: Number(place.latitude),
     longitude: Number(place.longitude),
-    admin1: place.admin1 || undefined,
+    admin1: formatAdminName(place.admin1) || undefined,
   };
 }
 
@@ -373,7 +383,8 @@ function isFavorite(place) {
 
 function placeLocationLabel(place) {
   const country = countryLabel(place);
-  const admin = place.admin1 && place.admin1 !== place.name ? place.admin1 : "";
+  const rawAdmin = place.admin1 && place.admin1 !== place.name ? place.admin1 : "";
+  const admin = formatAdminName(rawAdmin);
   return admin ? `${admin} · ${country}` : country;
 }
 
@@ -766,13 +777,18 @@ function modelInsight(weather) {
   const closest = [...sources].sort(
     (a, b) => Math.abs(a.deviation ?? 99) - Math.abs(b.deviation ?? 99),
   )[0];
-  const text =
-    largest && largest.spread >= 0.7
-      ? tr("models.largestSpread", {
-          time: formatHour(largest.time),
-          spread: formatDelta(largest.spread),
-        })
-      : tr("models.noDivergence");
+  let text = "";
+  if (largest && largest.spread >= 0.7) {
+    text = tr("models.largestSpread", {
+      time: formatHour(largest.time),
+      spread: formatDelta(largest.spread),
+    });
+    if (closest) {
+      text += ` · ${closest.shortName} ${tr("models.closest").toLowerCase()} (${formatDelta(closest.deviation ?? 0)})`;
+    }
+  } else {
+    text = tr("models.noDivergence");
+  }
   return { largest, closest, text };
 }
 
@@ -1163,7 +1179,7 @@ function briefMarkup(weather) {
         ${escapeHtml(expanded ? tr("brief.readLess") : tr("brief.readMore"))}
         ${uiIcon(expanded ? "chevronUp" : "chevronDown", 14)}
       </button>
-      <span class="brief-footnote">${escapeHtml(tr("brief.footnote"))}</span>
+      ${!expanded ? `<span class="brief-footnote">${escapeHtml(tr("brief.footnote"))}</span>` : ""}
     </div>
     <div class="brief-more ${expanded ? "is-open" : ""}" id="brief-more">
       <div class="brief-metrics">
@@ -1179,16 +1195,12 @@ function briefMarkup(weather) {
         }</b></div>
         <div class="brief-metric"><span>${escapeHtml(tr("brief.windPeak"))}</span><b>${escapeHtml(
           formatWind(brief.maxWind, state.units, state.locale),
-        )}</b></div>
+        )}${brief.maxGust > brief.maxWind ? ` <small class="brief-gust">(${escapeHtml(formatWind(brief.maxGust, state.units, state.locale))})</small>` : ""}</b></div>
         <div class="brief-metric"><span>${escapeHtml(tr("brief.agreementShort"))}</span><b>${brief.confidence}%</b></div>
       </div>
       <div class="brief-insight">
         ${uiIcon("layers", 17)}
-        <p>${escapeHtml(insight.text)}${insight.closest ? ` ${escapeHtml(
-          `${insight.closest.shortName} ${tr("models.closest").toLowerCase()} ${formatDelta(
-            insight.closest.deviation ?? 0,
-          )}.`,
-        )}` : ""}</p>
+        <p>${escapeHtml(insight.text)}</p>
       </div>
       <p class="brief-note">${escapeHtml(tr("brief.footnote"))}</p>
     </div>
@@ -1313,11 +1325,60 @@ function officialMarkup(weather) {
       )}</span>
     </div>
     <p class="official-foot">${escapeHtml(proximity)} · ${escapeHtml(
-      tr("official.note"),
+      tr("official.note", { n: activeSources(weather).length }),
     )} <a href="https://www.meteo.be/" target="_blank" rel="noreferrer noopener">${escapeHtml(
       tr("official.link"),
     )} ${uiIcon("external", 10)}</a></p>
   </section>`;
+}
+
+const MODEL_DESCRIPTIONS = {
+  fr: {
+    ecmwf: "Modèle mondial phare du Centre européen.",
+    icon: "Modèle mondial allemand et européen haute résolution 2 km.",
+    ukmo: "Modèle mondial combiné aux données haute résolution britanniques.",
+    meteofrance: "Modèle mondial ARPEGE couplé au cœur haute résolution AROME 1,3 km.",
+    gfs: "Modèle mondial américain de la NOAA, couplé à HRRR sur les États-Unis.",
+    gem: "Modèle mondial canadien d'ECCC et cœur régional haute résolution.",
+    jma: "Modèle spectral mondial japonais avec maille régionale MSM.",
+    cma: "Système mondial de prévision GRAPES de l'agence chinoise CMA.",
+    knmi: "Modèle HARMONIE 2,5 km de l'Institut royal météorologique néerlandais sur le Benelux.",
+    metno: "Modèle haute résolution nordique et européen de MET Norway.",
+    dmi: "Modèle régional et côtier de l'Institut météorologique danois.",
+    bom: "Prévision numérique mondiale du Bureau météorologique australien.",
+  },
+  nl: {
+    ecmwf: "Het wereldwijde vlaggenschipmodel van het Europees Centrum.",
+    icon: "Duits wereldwijd model en 2 km Europees model.",
+    ukmo: "Wereldwijd model gecombineerd met Britse hogeresolutiedata.",
+    meteofrance: "ARPEGE wereldwijd gekoppeld aan de 1,3 km AROME-kern.",
+    gfs: "Amerikaans wereldwijd model van NOAA, gecombineerd met HRRR.",
+    gem: "Canadees wereldwijd model en regionale hogeresolutiekern.",
+    jma: "Japans wereldwijd spectraalmodel met regionale MSM.",
+    cma: "Chinees wereldwijd GRAPES-voorspellingssysteem.",
+    knmi: "KNMI 2,5 km HARMONIE-model over de Benelux.",
+    metno: "Noors en Europees hogeresolutiemodel van MET Norway.",
+    dmi: "Regionaal en kustmodel van het Deens Meteorologisch Instituut.",
+    bom: "Australisch wereldwijd numeriek weermodel van BOM.",
+  },
+};
+
+function modelDescription(source, locale = state.locale) {
+  if (MODEL_DESCRIPTIONS[locale]?.[source.id]) {
+    return MODEL_DESCRIPTIONS[locale][source.id];
+  }
+  return source.description;
+}
+
+function modelResolution(source, locale = state.locale) {
+  const res = source.resolution || "";
+  if (locale === "fr") {
+    return res.replace(/\bglobal\b/gi, "mondial").replace(/\./g, ",");
+  }
+  if (locale === "nl") {
+    return res.replace(/\bglobal\b/gi, "wereldwijd").replace(/\./g, ",");
+  }
+  return res;
 }
 
 function modelsMarkup(weather) {
@@ -1325,6 +1386,7 @@ function modelsMarkup(weather) {
   const confidence = weather.current.agreement || 0;
   const level = confidenceLevel(confidence);
   const insight = modelInsight(weather);
+  const maxInfluence = Math.max(...sources.map((s) => s.influence || 0), 0.01);
   return `<section class="card models-card" id="models" aria-labelledby="models-title">
     <div class="card-head">
       <div><p class="eyebrow">${escapeHtml(tr("models.eyebrow"))}</p><h2 id="models-title">${escapeHtml(
@@ -1356,7 +1418,7 @@ function modelsMarkup(weather) {
           (source) => `<button class="model-row" data-action="model-info" data-model="${escapeHtml(
             source.id,
           )}" aria-label="${escapeHtml(tr("models.open", { model: source.name }))}" title="${escapeHtml(
-            source.description,
+            modelDescription(source, state.locale),
           )}">
             <span class="model-swatch" style="--source-color:${source.color}"></span>
             <span class="model-ident"><b>${escapeHtml(source.shortName)}</b><small>${escapeHtml(
@@ -1370,7 +1432,7 @@ function modelsMarkup(weather) {
             )}</span>
             <span class="model-weight"><span><i style="width:${Math.max(
               2,
-              Math.round(source.influence * 100),
+              Math.min(100, Math.round(((source.influence || 0) / maxInfluence) * 100)),
             )}%"></i></span><small>${Math.round(source.influence * 100)}%</small></span>
           </button>`,
         )
@@ -1542,11 +1604,13 @@ function detailsMarkup(weather) {
   const uv = weather.current.uvIndex;
   const visibility = weather.current.visibility;
   const visibilityText =
-    visibility >= 20
+    visibility > 10
       ? tr("details.visibilityGood")
-      : visibility >= 8
-        ? tr("details.visibilityHaze")
-        : tr("details.visibilityPoor");
+      : visibility >= 5
+        ? tr("details.visibilityModerate")
+        : visibility >= 1
+          ? tr("details.visibilityHaze")
+          : tr("details.visibilityFog");
   const cloudText =
     weather.current.cloudCover < 25
       ? tr("details.cloudFew")
@@ -1785,7 +1849,7 @@ function airMarkup(weather) {
       </div>
     </div>
     ${aqiBar(air.aqi, state.locale, tr)}
-    ${aqiSparkline(air.hourlyAqi)}
+    ${aqiSparkline(air.hourlyAqi, weather, state.locale, tr)}
     <div class="air-pollutants">
       <div><span>${escapeHtml(tr("air.pm25"))}</span><b>${air.pm2_5 == null ? "—" : localeNumber(air.pm2_5, 1)}</b><small>µg/m³</small></div>
       <div><span>${escapeHtml(tr("air.pm10"))}</span><b>${air.pm10 == null ? "—" : localeNumber(air.pm10, 1)}</b><small>µg/m³</small></div>
@@ -2521,7 +2585,13 @@ function optionCard({ action, attribute, value, selected, icon, title, sub }) {
 
 function methodModalContent() {
   const weather = state.weather;
-  const sources = weather ? activeSources(weather) : [];
+  const rawSources = weather?.sources || [];
+  const sources = [...rawSources].sort((a, b) => {
+    if (a.available && !b.available) return -1;
+    if (!a.available && b.available) return 1;
+    return (b.influence || 0) - (a.influence || 0);
+  });
+  const maxInfluence = Math.max(...sources.map((s) => s.influence || 0), 0.01);
   const region = weightRegionLabel();
   return `<div class="method-shell">
     ${modalHeader({
@@ -2555,18 +2625,22 @@ function methodModalContent() {
       )}</h3><span>${escapeHtml(tr("method.weightNote", { region }))}</span></div>
       <div class="source-table">
         ${sources
-          .map(
-            (source) => `<div class="source-table-row">
+          .map((source) => {
+            const influencePct = Math.round((source.influence || 0) * 100);
+            const normPercent = Math.min(100, Math.round(((source.influence || 0) / maxInfluence) * 100));
+            const isAvailable = Boolean(source.available && influencePct > 0);
+            return `<div class="source-table-row ${isAvailable ? "" : "is-inactive"}">
               <span class="model-swatch" style="--source-color:${source.color}"></span>
               <span class="source-name"><b>${escapeHtml(source.name)}</b><small>${escapeHtml(
                 source.center,
-              )} · ${escapeHtml(source.resolution)}</small></span>
-              <span class="source-weight"><span class="weight-track"><i style="width:${Math.max(
-                2,
-                Math.round(source.influence * 100),
-              )}%"></i></span><b>${Math.round(source.influence * 100)}%</b></span>
-            </div>`,
-          )
+              )} · ${escapeHtml(modelResolution(source, state.locale))}</small></span>
+              ${
+                isAvailable
+                  ? `<span class="source-weight"><span class="weight-track"><i style="width:${normPercent}%;"></i><span class="weight-thumb" style="left:${normPercent}%;"></span></span><b>${influencePct}%</b></span>`
+                  : `<span class="source-inactive-badge">${escapeHtml(tr("models.inactiveBadge"))}</span>`
+              }
+            </div>`;
+          })
           .join("")}
       </div>
       ${
@@ -2715,9 +2789,9 @@ function modelModalContent(payload) {
     <div class="model-hero">
       <span class="model-orb" style="--source-color:${source.color}">${modelGlyph(44)}</span>
       <div class="model-hero-copy">
-        <p>${escapeHtml(source.description)}</p>
+        <p>${escapeHtml(modelDescription(source, state.locale))}</p>
         <div class="model-tags"><span>${escapeHtml(source.center)}</span><span>${escapeHtml(
-          source.resolution,
+          modelResolution(source, state.locale),
         )}</span><span>${escapeHtml(tr("models.available"))}</span></div>
       </div>
       <div class="model-hero-temp">${escapeHtml(
@@ -2735,7 +2809,7 @@ function modelModalContent(payload) {
         formatAbsDelta(source.meanAbsDeviation ?? 0, state.units, state.locale, 2),
       )}</b></div>
       <div><span>${escapeHtml(tr("models.resolution"))}</span><b>${escapeHtml(
-        source.resolution,
+        modelResolution(source, state.locale),
       )}</b></div>
     </div>
     <section class="model-chart-section">

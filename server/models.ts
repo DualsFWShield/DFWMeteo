@@ -79,7 +79,7 @@ export const MODELS: ModelDefinition[] = [
     center: "JMA",
     description: "Japan's global spectral model with regional MSM.",
     resolution: "5–20 km",
-    color: "#dbe4f5",
+    color: "#f472b6",
     region: "asia",
   },
   {
