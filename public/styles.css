@@ -39,6 +39,10 @@
 }
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --bg: #060910;
   --bg-soft: #090e19;
   --surface: rgba(14, 21, 37, 0.7);
@@ -261,6 +265,7 @@ svg {
 
 .boot {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -268,6 +273,7 @@ svg {
   gap: 10px;
   position: relative;
   z-index: 1;
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
 }
 
 .boot-orbit {
@@ -409,8 +415,8 @@ svg {
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 14px 24px 10px;
-  background: linear-gradient(180deg, rgba(6, 9, 16, 0.9) 0%, rgba(6, 9, 16, 0.62) 64%, transparent 100%);
+  padding: calc(14px + var(--safe-top)) calc(24px + var(--safe-right)) 10px calc(24px + var(--safe-left));
+  background: linear-gradient(180deg, rgba(6, 9, 16, 0.94) 0%, rgba(6, 9, 16, 0.72) 64%, transparent 100%);
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
@@ -653,7 +659,7 @@ svg {
 .shell {
   width: min(var(--max), 100%);
   margin: 0 auto;
-  padding: 10px 24px 0;
+  padding: 10px calc(24px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(24px + var(--safe-left));
   position: relative;
   z-index: 1;
 }
@@ -3832,7 +3838,7 @@ svg {
 
 .site-footer {
   margin-top: 46px;
-  padding: 32px 0 28px;
+  padding: 32px calc(12px + var(--safe-right)) calc(28px + var(--safe-bottom)) calc(12px + var(--safe-left));
   border-top: 1px solid var(--line);
 }
 
@@ -4218,7 +4224,7 @@ body.modal-open {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 42px 18px;
+  padding: calc(42px + var(--safe-top)) calc(18px + var(--safe-right)) calc(42px + var(--safe-bottom)) calc(18px + var(--safe-left));
   overflow-y: auto;
   background: rgba(3, 6, 11, 0.68);
   backdrop-filter: blur(13px) saturate(0.9);
@@ -5403,7 +5409,7 @@ body.modal-open {
 .toast-root {
   position: fixed;
   left: 50%;
-  bottom: 26px;
+  bottom: calc(26px + var(--safe-bottom));
   transform: translateX(-50%);
   z-index: 150;
   pointer-events: none;
@@ -5672,7 +5678,7 @@ body.modal-open {
 
 @media (max-width: 680px) {
   .topbar {
-    padding: 9px 12px 6px;
+    padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) 6px calc(12px + var(--safe-left));
   }
 
   .topbar-inner {
@@ -5736,7 +5742,7 @@ body.modal-open {
   }
 
   .shell {
-    padding: 6px 12px 0;
+    padding: 6px calc(12px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(12px + var(--safe-left));
   }
 
   .hero {
@@ -6256,7 +6262,7 @@ body.modal-open {
 
   .site-footer {
     margin-top: 30px;
-    padding: 24px 0 20px;
+    padding: 24px calc(8px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(8px + var(--safe-left));
   }
 
   .modal-backdrop {
@@ -6266,25 +6272,31 @@ body.modal-open {
 
   .modal {
     width: 100%;
-    max-height: 94vh;
+    max-height: calc(100vh - var(--safe-top) - 16px);
+    max-height: calc(100dvh - var(--safe-top) - 16px);
     overflow-y: auto;
     border-radius: 25px 25px 0 0;
-    padding: 21px 17px;
+    padding: 21px calc(17px + var(--safe-right)) calc(21px + var(--safe-bottom)) calc(17px + var(--safe-left));
     border-bottom: 0;
   }
 
   .modal--search {
-    max-height: 92vh;
+    max-height: calc(100vh - var(--safe-top) - 16px);
+    max-height: calc(100dvh - var(--safe-top) - 16px);
     padding: 0;
     display: flex;
     flex-direction: column;
   }
 
   .search-shell {
-    padding: 20px 16px 0;
+    padding: 20px calc(16px + var(--safe-right)) 0 calc(16px + var(--safe-left));
     display: flex;
     flex-direction: column;
     min-height: 0;
+  }
+
+  .search-footer {
+    padding-bottom: calc(16px + var(--safe-bottom));
   }
 
   .search-results {
