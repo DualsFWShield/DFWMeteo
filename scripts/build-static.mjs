@@ -65,6 +65,18 @@ await fs.writeFile(path.join(distDir, ".nojekyll"), "", "utf8");
 // A client-side 404 makes direct links resilient without server rewrites.
 await fs.copyFile(indexPath, path.join(distDir, "404.html"));
 
+// Version metadata for update checks
+const versionInfo = {
+  version: "1.0.0",
+  buildTime: new Date().toISOString(),
+  target: "static",
+};
+await fs.writeFile(
+  path.join(distDir, "version.json"),
+  JSON.stringify(versionInfo, null, 2),
+  "utf8",
+);
+
 const stats = await fs.stat(path.join(distDir, "js/dfwmeteo-api.js"));
 console.log(
   `Static build ready: dist/ (engine ${Math.round(stats.size / 1024)} kB · IRM ${irm.cities.length}/12 centres)`,

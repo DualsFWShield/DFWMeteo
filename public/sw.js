@@ -5,6 +5,8 @@ const STATIC_ASSETS = [
   "./styles.css",
   "./manifest.webmanifest",
   "./favicon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
   "./gemini-svg.svg",
   "./DFWMeteo-svg.svg",
   "./fonts/manrope-latin.woff2",

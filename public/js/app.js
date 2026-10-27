@@ -3178,6 +3178,14 @@ function bindEvents() {
   }, 120000);
 }
 
+function isCapacitorNative() {
+  return Boolean(
+    window.Capacitor?.isNativePlatform?.() ||
+      (typeof window.Capacitor?.getPlatform === "function" &&
+        window.Capacitor.getPlatform() !== "web"),
+  );
+}
+
 function setupBackButtonHandler() {
   // 1. Android Capacitor Native Back Button listener
   const capacitorApp = window.CapacitorApp || window.Capacitor?.Plugins?.App;
@@ -3208,7 +3216,7 @@ function setupBackButtonHandler() {
 async function forceAppUpdate() {
   showToast(tr("settings.updating"), "default");
 
-  // 1. Clear CacheStorage
+  // 1. Clear CacheStorage completely
   if ("caches" in window) {
     try {
       const keys = await caches.keys();
@@ -3218,40 +3226,95 @@ async function forceAppUpdate() {
     }
   }
 
-  // 2. Clear weather cache in localStorage, keeping preferences
+  // 2. Clear all weather caches from localStorage, preserving user preferences
   try {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith("dfwmeteo_weather_") || key.startsWith("dfwmeteo_cache_"))) {
+      if (
+        key &&
+        (key.startsWith(STORAGE.weatherPrefix) ||
+          key.startsWith("dfwmeteo:weather") ||
+          key.startsWith("dfwmeteo:cache") ||
+          key.startsWith("dfwmeteo_weather") ||
+          key.startsWith("dfwmeteo_cache"))
+      ) {
         keysToRemove.push(key);
       }
     }
     keysToRemove.forEach((k) => localStorage.removeItem(k));
-  } catch {}
+  } catch (e) {
+    console.warn("[dfwmeteo] LocalStorage clear error:", e);
+  }
 
-  // 3. Skip waiting on active service worker
+  if (isCapacitorNative()) {
+    // Native Android Capacitor App:
+    // Close modal, force live weather refresh from all 12 models and IRM
+    closeModal();
+    try {
+      await requestWeather({ silent: false, initial: false, notify: true, force: true });
+      showToast(tr("settings.updated"), "success");
+    } catch (err) {
+      console.warn("[dfwmeteo] Native weather update error:", err);
+      showToast(tr("settings.updated"), "default");
+    }
+
+    // Check remote GitHub releases for updated APK availability
+    try {
+      const releaseRes = await fetch(
+        "https://api.github.com/repos/DualsFWShield/DFWMeteo/releases/latest",
+        { cache: "no-store", headers: { Accept: "application/vnd.github.v3+json" } },
+      ).catch(() => null);
+      if (releaseRes?.ok) {
+        const releaseData = await releaseRes.json();
+        const apkAsset = releaseData.assets?.find((a) => a.name?.endsWith(".apk"));
+        if (apkAsset?.browser_download_url) {
+          const publishedDate = new Date(releaseData.published_at || Date.now()).toLocaleDateString();
+          showToast(
+            `APK disponible (${releaseData.tag_name || "v1"} · ${publishedDate})`,
+            "default",
+            7000,
+          );
+        }
+      }
+    } catch {}
+    return;
+  }
+
+  // Web / PWA browser environment:
+  // Unregister all service workers so there is no stale controller intercepting network
   if ("serviceWorker" in navigator) {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const reg of registrations) {
-        if (reg.waiting) {
-          reg.waiting.postMessage({ type: "SKIP_WAITING" });
-        }
-        await reg.update().catch(() => {});
+        await reg.unregister().catch(() => {});
       }
     } catch (e) {
-      console.warn("[dfwmeteo] SW update error:", e);
+      console.warn("[dfwmeteo] SW unregister error:", e);
     }
   }
 
-  // 4. Force reload bypassing cache
+  // Force clean reload bypassing cache with cache-busting timestamp
   const url = new URL(window.location.href);
-  url.searchParams.set("reload", Date.now().toString());
+  url.searchParams.set("v", Date.now().toString());
   window.location.replace(url.toString());
 }
 
 function registerServiceWorker() {
+  if (isCapacitorNative()) {
+    // In native Capacitor APK, static files are bundled inside the app package.
+    // Unregister any stale web Service Workers that may linger in the WebView.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          for (const reg of registrations) reg.unregister();
+        })
+        .catch(() => {});
+    }
+    return;
+  }
+
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
