@@ -771,7 +771,7 @@ async function fetchWeatherData(query: WeatherQuery): Promise<WeatherPayload> {
     },
     modelCount: liveSources.length,
     attribution:
-      "Open-Meteo · ECMWF, DWD, Met Office, Météo-France, NOAA, ECCC, JMA, CMA",
+      "Open-Meteo · ECMWF, DWD, Met Office, Météo-France, KNMI, MET Norway, DMI, BOM, NOAA, ECCC, JMA, CMA",
   };
 
   const location: Place = {

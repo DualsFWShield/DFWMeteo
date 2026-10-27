@@ -20,11 +20,10 @@ try {
   irm = { generatedAt: new Date().toISOString(), provider: "IRM / KMI", cities: [] };
 }
 await fs.mkdir(path.join(distDir, "data"), { recursive: true });
-await fs.writeFile(
-  path.join(distDir, "data/irm.json"),
-  JSON.stringify(irm),
-  "utf8",
-);
+await fs.mkdir(path.join(publicDir, "data"), { recursive: true });
+const irmJson = JSON.stringify(irm);
+await fs.writeFile(path.join(distDir, "data/irm.json"), irmJson, "utf8");
+await fs.writeFile(path.join(publicDir, "data/irm.json"), irmJson, "utf8");
 
 await build({
   entryPoints: [path.join(root, "src-static/static-api.ts")],

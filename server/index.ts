@@ -46,6 +46,11 @@ app.get("/api/weather", async (req, res, next) => {
     const timezone = req.query.timezone ? String(req.query.timezone) : undefined;
     const force = req.query.force === "1";
 
+    const language = String(req.query.lang || "en");
+    const safeLanguage = ["en", "fr", "nl"].includes(language)
+      ? (language as "en" | "fr" | "nl")
+      : "en";
+
     const useIrm =
       countryCode.toUpperCase() === "BE" ||
       (countryCode === "" && isBelgiumCoordinate(latitude, longitude));
@@ -62,7 +67,7 @@ app.get("/api/weather", async (req, res, next) => {
         },
         { force },
       ),
-      useIrm ? getIrmOfficial(latitude, longitude).catch(() => null) : Promise.resolve(null),
+      useIrm ? getIrmOfficial(latitude, longitude, safeLanguage).catch(() => null) : Promise.resolve(null),
     ]);
 
     res.setHeader("Cache-Control", "private, max-age=30");

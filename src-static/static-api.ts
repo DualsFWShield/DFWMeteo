@@ -1,6 +1,7 @@
 import { App as CapacitorApp } from "@capacitor/app";
 import { geocode, reverseGeocode } from "../server/geocode.ts";
 import { getWeather } from "../server/weather.ts";
+import { parseIrmForecast, irmCodeToWmo } from "../server/irm-core.ts";
 
 /**
  * GitHub Pages & native Capacitor builds run without the Express server.
@@ -10,6 +11,8 @@ const api = {
   weather: getWeather,
   geocode,
   reverseGeocode,
+  parseIrmForecast,
+  irmCodeToWmo,
   App: CapacitorApp,
 };
 

@@ -1176,6 +1176,24 @@ const OFFICIAL_CITY_NAMES = {
   ostend: { en: "Ostend", fr: "Ostende", nl: "Oostende" },
   ostende: { en: "Ostend", fr: "Ostende", nl: "Oostende" },
   oostende: { en: "Ostend", fr: "Ostende", nl: "Oostende" },
+  mons: { en: "Mons", fr: "Mons", nl: "Bergen" },
+  bergen: { en: "Mons", fr: "Mons", nl: "Bergen" },
+  tournai: { en: "Tournai", fr: "Tournai", nl: "Doornik" },
+  doornik: { en: "Tournai", fr: "Tournai", nl: "Doornik" },
+  wavre: { en: "Wavre", fr: "Wavre", nl: "Waver" },
+  waver: { en: "Wavre", fr: "Wavre", nl: "Waver" },
+  ieper: { en: "Ypres", fr: "Ypres", nl: "Ieper" },
+  ypres: { en: "Ypres", fr: "Ypres", nl: "Ieper" },
+  "sint-niklaas": { en: "Sint-Niklaas", fr: "Saint-Nicolas", nl: "Sint-Niklaas" },
+  "saint-nicolas": { en: "Sint-Niklaas", fr: "Saint-Nicolas", nl: "Sint-Niklaas" },
+  arlon: { en: "Arlon", fr: "Arlon", nl: "Aarlen" },
+  aarlen: { en: "Arlon", fr: "Arlon", nl: "Aarlen" },
+  bastogne: { en: "Bastogne", fr: "Bastogne", nl: "Bastenaken" },
+  bastenaken: { en: "Bastogne", fr: "Bastogne", nl: "Bastenaken" },
+  nivelles: { en: "Nivelles", fr: "Nivelles", nl: "Nijvel" },
+  nijvel: { en: "Nivelles", fr: "Nivelles", nl: "Nijvel" },
+  "sint-truiden": { en: "Sint-Truiden", fr: "Saint-Trond", nl: "Sint-Truiden" },
+  "saint-trond": { en: "Sint-Truiden", fr: "Saint-Trond", nl: "Sint-Truiden" },
 };
 
 function officialCityName(name) {
@@ -2862,6 +2880,7 @@ async function requestWeather({ silent = false, initial = false, notify = false,
     const payload = await fetchWeather(state.place, {
       signal: controller.signal,
       force,
+      lang: state.locale,
     });
     if (seq !== state.requestSeq) return;
     state.weather = payload;
