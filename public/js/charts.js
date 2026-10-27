@@ -272,19 +272,42 @@ export function modelSpreadChart({
   </div>`;
 }
 
-export function precipBars(hourly, units = "metric", count = 24) {
+export function precipBars(hourly, units = "metric", count = 24, locale = "en") {
   const points = hourly.slice(0, count);
   const max = Math.max(...points.map((point) => point.precipitation ?? 0), 0.5);
-  return `<div class="precip-mini" aria-hidden="true">
-    ${points
-      .map((point, index) => {
-        const value = point.precipitation ?? 0;
-        const height = clamp((value / max) * 100, 4, 100);
-        return `<span class="${value > 0.05 ? "is-wet" : "is-dry"}" style="--h:${height}%;--i:${index}" title="${escapeHtml(
-          formatPrecip(value, units, "en"),
-        )}"></span>`;
-      })
-      .join("")}
+
+  function getShortHour(iso) {
+    if (!iso) return "";
+    const match = String(iso).match(/T(\d{2}):/);
+    if (!match) return "";
+    return `${match[1]}h`;
+  }
+
+  const h0 = getShortHour(points[0]?.time);
+  const h6 = getShortHour(points[6]?.time);
+  const h12 = getShortHour(points[12]?.time);
+  const h18 = getShortHour(points[18]?.time);
+  const h24 = getShortHour(points[points.length - 1]?.time);
+
+  return `<div class="precip-timeline">
+    <div class="precip-mini" aria-hidden="true">
+      ${points
+        .map((point, index) => {
+          const value = point.precipitation ?? 0;
+          const height = clamp((value / max) * 100, 4, 100);
+          return `<span class="${value > 0.05 ? "is-wet" : "is-dry"}" style="--h:${height}%;--i:${index}" title="${escapeHtml(
+            formatPrecip(value, units, locale),
+          )}"></span>`;
+        })
+        .join("")}
+    </div>
+    <div class="precip-hours" aria-hidden="true">
+      <span>${escapeHtml(h0)}</span>
+      <span>${escapeHtml(h6)}</span>
+      <span>${escapeHtml(h12)}</span>
+      <span>${escapeHtml(h18)}</span>
+      <span>${escapeHtml(h24)}</span>
+    </div>
   </div>`;
 }
 
@@ -379,30 +402,43 @@ export function uvArc(value, max, locale, translate) {
 
 export function pressureGauge(pressure, trend, units, locale, translate) {
   const value = clamp(Number(pressure) || 1013, 970, 1050);
-  const angle = -120 + ((value - 970) / 80) * 240;
-  const trendIcon = trend === "rising" ? "chevronUp" : trend === "falling" ? "chevronDown" : "activity";
+  const pct = clamp((value - 970) / (1050 - 970), 0, 1);
+  const angle = -120 + pct * 240;
+  const trendArrow = trend === "rising" ? "↗" : trend === "falling" ? "↘" : "→";
+
   return `<div class="pressure-gauge">
     <svg viewBox="0 0 200 138" role="img" aria-label="${escapeHtml(
       `${translate("details.pressure")} ${formatPressure(pressure, units, locale)}`,
     )}">
-      <path d="M48 116 A68 68 0 1 1 152 116" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9" stroke-linecap="round"/>
-      <path d="M48 116 A68 68 0 0 1 100 20" fill="none" stroke="rgba(56,189,248,.35)" stroke-width="1.8" stroke-linecap="round"/>
-      <g transform="rotate(${angle.toFixed(1)} 100 78)">
-        <line x1="100" y1="28" x2="100" y2="76" stroke="#f4f7fc" stroke-width="2.2" stroke-linecap="round"/>
-        <circle cx="100" cy="28" r="3.2" fill="#38bdf8"/>
+      <defs>
+        <linearGradient id="pressure-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#38bdf8"/>
+          <stop offset="50%" stop-color="#60a5fa"/>
+          <stop offset="100%" stop-color="#818cf8"/>
+        </linearGradient>
+      </defs>
+      <!-- Base track -->
+      <path d="M40 120 A68 68 0 1 1 160 120" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="8.5" stroke-linecap="round"/>
+      <!-- Active colored pressure arc -->
+      <path d="M40 120 A68 68 0 1 1 160 120" fill="none" stroke="url(#pressure-grad)" stroke-width="7" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${(
+        100 - pct * 100
+      ).toFixed(1)}" opacity=".92"/>
+      <!-- Indicator dot on track -->
+      <g transform="rotate(${angle.toFixed(1)} 100 85)">
+        <circle cx="100" cy="17" r="5" fill="#ffffff" stroke="#080e1a" stroke-width="2"/>
       </g>
-      <circle cx="100" cy="78" r="4.5" fill="#080e1a" stroke="#f4f7fc" stroke-width="1.5"/>
-      <text x="100" y="108" text-anchor="middle" fill="#f4f7fc" font-size="19" font-weight="500" letter-spacing="-.5">${escapeHtml(
+      <!-- Central display -->
+      <text x="100" y="80" text-anchor="middle" fill="#f4f7fc" font-size="22" font-weight="400" letter-spacing="-.5">${escapeHtml(
         formatPressure(pressure, units, locale),
       )}</text>
-      <text x="46" y="130" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="7.5">970</text>
-      <text x="154" y="130" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="7.5">1050</text>
-    </svg>
-    <div class="gauge-trend-wrap">
-      <span class="gauge-trend">${uiIcon(trendIcon, 12)} ${escapeHtml(
+      <text x="100" y="98" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="600" letter-spacing=".4">${trendArrow} ${escapeHtml(
         translate(`details.${trend}`),
-      )}</span>
-    </div>
+      )}</text>
+      <!-- Scale limits -->
+      <text x="40" y="132" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="7.5">970</text>
+      <text x="100" y="118" text-anchor="middle" fill="rgba(255,255,255,.2)" font-size="7">1013</text>
+      <text x="160" y="132" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="7.5">1050</text>
+    </svg>
   </div>`;
 }
 

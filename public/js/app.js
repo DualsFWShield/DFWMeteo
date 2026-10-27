@@ -1535,8 +1535,7 @@ function detailsMarkup(weather) {
           )} ${formatPercent(today?.precipitationProbability ?? 0, state.locale)}</div>
         </div>
         <div class="detail-bottom">
-          ${precipBars(weather.hourly, state.units)}
-          <div class="detail-foot">${escapeHtml(tr("details.next24"))}</div>
+          ${precipBars(weather.hourly, state.units, 24, state.locale)}
         </div>
       </article>
 
