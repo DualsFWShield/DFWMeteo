@@ -1,56 +1,75 @@
 # DFWMeteo
 
-**Eight skies. One forecast.**
+**Twelve skies. One forecast.**
 
-DFWMeteo is a premium, independent weather app that resolves eight numerical weather
-models into one calm, explainable forecast. It is tuned for Belgium first and
-works for any location through Open-Meteo's global model set.
+DFWMeteo is a premium, independent weather app that resolves twelve numerical weather
+models into one calm, explainable forecast. It is calibrated for Belgium first and
+works for any location worldwide through Open-Meteo's open model infrastructure.
 
 ![DFWMeteo desktop preview](docs/preview.png)
 
 ## What it does
 
 - **Multi-source consensus** — ECMWF IFS, DWD ICON, UK Met Office, Météo-France,
-  NOAA GFS, ECCC GEM, JMA and CMA GRAPES are fetched in parallel for the same
-  coordinates and time zone.
-- **Belgium-first weighting** — regional priors favour high-resolution European
-  models around the North Sea, then adapt by country and continent.
-- **Official Belgian layer** — for Belgian locations, an IRM/KMI observation and
-  forecast is shown as a distinct official check. It is deliberately not blended
-  into the numerical-model consensus.
+  KNMI Harmonie, MET Norway, DMI, BOM ACCESS-G, NOAA GFS, ECCC GEM, JMA and CMA GRAPES
+  are fetched in parallel for the same coordinates and time zone.
+- **Belgium-first weighting** — regional priors favour ultra-high-resolution European
+  models (KNMI 2.5 km, AROME 1.3 km, ICON 2 km) around the North Sea, then adapt by country and continent.
+- **Official Belgian layer (IRM / KMI)** — for Belgian locations, an IRM observation and
+  forecast is shown as a distinct official check. It is deliberately kept outside
+  the numerical-model consensus.
+  - **Android APK**: Native direct fetch via `CapacitorHttp` with zero CORS limits.
+  - **Local server**: Real-time queries for exact coordinates with 10-minute caching.
+  - **Web / PWA**: Live gateway with instant fallback to a 34-city regional hub snapshot.
 - **Transparent confidence** — weighted temperature consensus, circular wind
   means, weighted weather-code voting, model spread and agreement scores are
   exposed rather than hidden behind a single number.
-- **A complete forecast surface** — current conditions, an editorial brief,
-  24-hour timeline, interactive eight-model spread chart, 10-day outlook with
-  source-by-source daily detail, high-resolution two-hour nowcast, air quality,
+- **Complete forecast surface** — current conditions, editorial brief,
+  24-hour timeline, interactive twelve-model spread chart, 10-day outlook with
+  source-by-source daily detail, 15-minute high-resolution nowcast, air quality,
   pollen, sun, moon, UV, visibility, humidity, pressure and smart advisories.
-- **Belgian and global places** — curated Belgian cities, browser geolocation,
-  saved places, shareable URLs and worldwide search.
+- **Installable Android App & PWA** — Capacitor 8 native APK with hardware back button
+  support, service worker shell caching, and automated GitHub Releases.
 - **Trilingual** — English, French and Dutch interfaces with localized dates,
   numbers, weather descriptions and briefings.
-- **Premium dark interface** — an aurora/observatory aesthetic, custom SVG
+- **Premium dark interface** — aurora/observatory aesthetic, custom SVG
   weather glyphs, animated atmosphere, responsive layouts, centred mobile detail
   tiles and reduced-motion mode.
-- **Built to stay useful** — automatic refresh, manual forced refresh, in-memory
-  caching, local fallback cache, offline banners, keyboard navigation and clear
-  error recovery.
 
 <p align="center">
   <img src="docs/mobile.png" width="300" alt="DFWMeteo mobile preview" />
   <img src="docs/details-mobile.png" width="300" alt="Centred detail tiles on mobile" />
 </p>
 
+## Android App (APK)
+
+An installable Android APK is automatically built and published to GitHub Releases:
+
+1. Open the [Releases](https://github.com/DualsFWShield/DFWMeteo/releases) tab.
+2. Download `DFWMeteo.apk`.
+3. Install and run directly on any Android device (supports Android 8.0 up to Android 16 / API 36).
+
+To build the APK locally:
+
+```bash
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+
+The APK will be generated at `android/app/build/outputs/apk/debug/app-debug.apk`.
+
 ## Run it locally
 
-Requires **Node.js 22.18+** (Node 26 recommended). Local mode needs no API key.
+Requires **Node.js 22.18+** (Node 24+ recommended). Local mode needs no API key.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open <http://127.0.0.1:5173>. The local Express server fetches the eight models,
+Open <http://127.0.0.1:5173>. The local Express server fetches the twelve models,
 serves the app, and queries IRM/KMI live for Belgian locations.
 
 For a production-like local run:
@@ -59,29 +78,21 @@ For a production-like local run:
 npm start
 ```
 
-The app uses `PORT` if set. The server binds to `127.0.0.1`.
+The app uses `PORT` if set (default 5173). The server binds to `127.0.0.1`.
 
 ## Deploy to GitHub Pages
 
 GitHub Pages is static, so DFWMeteo ships a browser build of its consensus engine.
 It calls Open-Meteo, Open-Meteo geocoding and BigDataCloud directly, and loads a
-build-time IRM/KMI snapshot for twelve Belgian centres.
+build-time IRM/KMI snapshot for 34 Belgian centres across all 10 provinces.
 
-1. Push this directory to a GitHub repository.
-2. In the repository, open **Settings → Pages → Build and deployment**.
-3. Set **Source** to **GitHub Actions**.
-4. Push to `main` (or run **Deploy DFWMeteo to GitHub Pages** manually from Actions).
+1. Push this repository to GitHub (`main` or `master`).
+2. Under **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**.
+3. Push to `main` (or trigger **Deploy DFWMeteo to GitHub Pages** manually).
 
 The workflow at [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
-runs the typecheck, builds `dist/`, fetches the IRM snapshot, and deploys the
+runs the typecheck, compiles `dist/`, fetches the 34-city IRM snapshot, and deploys the
 artifact. It also runs every 30 minutes to refresh the official Belgian layer.
-The site will be available at `https://<username>.github.io/<repository>/`;
-all asset paths are relative, so project-site subpaths work.
-
-No API keys or secrets are required. The static app keeps the same UI, search,
-favourites, unit/language preferences, local cache and model comparison. The
-IRM official layer only requires an internet connection at build/deploy time,
-which avoids the browser CORS restrictions on the IRM app endpoint.
 
 To preview the exact static artifact locally:
 
@@ -96,57 +107,35 @@ This builds `dist/` and serves it at <http://127.0.0.1:4173>.
 ```bash
 npm test          # consensus math, weather-code voting, confidence
 npm run typecheck # TypeScript server/IRM check
-npm run test:api  # live Brussels aggregation smoke test
+npm run test:api  # live Brussels 12-model aggregation smoke test
 npm run build     # typecheck + static GitHub Pages build
 node scripts/check-i18n.mjs
 ```
 
-The browser app is dependency-free at runtime. The only runtime dependencies of
-the local server are Express and compression; esbuild is used only to produce the
-static GitHub Pages engine. Fonts are bundled locally, so the interface does not
-depend on Google Fonts or a CDN.
+The browser app is dependency-free at runtime. Fonts are bundled locally, so the interface does not
+depend on external CDNs or Google Fonts.
 
-## How the forecast is built
+## The 12 Consensus Models
 
-1. **Gather** — one parallel Open-Meteo request returns hourly and daily fields
-   for all eight models; air quality and the 15-minute nowcast are fetched
-   separately.
-2. **Weight** — regional priors give ECMWF, ICON, UKMO and Météo-France more
-   influence in Belgium than global-only systems. North America leans toward
-   GFS and GEM; Asia toward JMA and CMA. Weights are normalised across the
-   sources that actually returned data.
-3. **Resolve** — temperatures use a trimmed weighted mean; wind direction uses a
-   circular mean; weather codes use weighted group voting. The confidence score
-   measures how tightly the sources cluster. It is an agreement signal, not a
-   guarantee of accuracy.
-4. **Explain** — every source's current value, deviation from consensus,
-   influence and 24-hour mean deviation are visible in the interface. The
-   methodology dialog explains the limits.
-
-### The IRM/KMI layer
-
-The IRM/KMI layer is intentionally separate from the eight-model blend. It is an
-official Belgian observation/forecast reference, so mixing it into a numerical
-model consensus would blur two different kinds of evidence. It appears in the
-Model room with its observation time, wind, high/low, distance to the nearest
-official centre and any official warnings.
-
-- **Local server mode:** queried live for the exact coordinate.
-- **GitHub Pages mode:** generated at build/deploy time for the nearest of
-  twelve Belgian centres, then refreshed by the scheduled workflow. The UI
-  labels it `Snapshot` and shows the centre/distance.
-
-The endpoint used is the IRM/KMI mobile-app endpoint, which is not publicly
-documented and can change without notice. This integration is best-effort and
-is not affiliated with or endorsed by IRM/KMI.
+| Model | Center | Resolution / Region | Focus |
+| :--- | :--- | :--- | :--- |
+| **KNMI Harmonie** | KNMI (Netherlands) | 2.5 km Benelux | Local convective and North Sea boundary |
+| **ECMWF IFS** | ECMWF | 0.25° Global | Flagship European global model |
+| **ICON** | DWD (Germany) | 2–11 km Europe & Global | High-resolution continental core |
+| **UK Met Office** | UKMO (United Kingdom) | 2–10 km | Atlantic frontal dynamics |
+| **Météo-France** | Météo-France | 1.3–25 km | High-resolution AROME / ARPEGE |
+| **MET Norway** | MET Norway | 1–2.5 km Europe | Nordic and coastal precipitation |
+| **DMI** | DMI (Denmark) | 2.5 km Europe | Maritime North Sea / Baltic |
+| **BOM ACCESS-G** | BOM (Australia) | 12 km Global | Southern hemisphere / global synthesis |
+| **NOAA GFS** | NOAA (United States) | 3–13 km | Global prediction & American core |
+| **ECCC GEM** | ECCC (Canada) | 2.5–10 km | High-latitude boreal dynamics |
+| **JMA GSM** | JMA (Japan) | 5–20 km | Asian and Pacific spectral model |
+| **CMA GRAPES** | CMA (China) | 0.25° Global | Global prediction system |
 
 ## Data & attribution
 
 Forecasts and air quality are provided by [Open-Meteo](https://open-meteo.com/)
-and its upstream model centres: ECMWF, DWD, the UK Met Office, Météo-France,
-NOAA, ECCC, JMA and CMA.
-
-Model data is © Open-Meteo contributors, licensed under
+and its upstream model centres. Model data is © Open-Meteo contributors, licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). DFWMeteo's interface,
 weighting, IRM parser and synthesis are independent.
 
@@ -155,16 +144,10 @@ DFWMeteo is **not** an official warning service. For official Belgian alerts, co
 
 ## Architecture
 
-- `server/` — Express API, upstream fetch/caching, multi-model parsing, consensus
-  engine and the live IRM/KMI official layer.
-- `src-static/static-api.ts` — tiny browser entry that bundles the same consensus
-  engine for GitHub Pages.
-- `public/` — dependency-free browser app, custom SVG charts and visual system.
-- `shared/` — shared TypeScript types and WMO weather-code mapping.
-- `scripts/` — static build, IRM snapshot generation, consensus tests, live API
-  smoke test and translation coverage check.
-- `.github/workflows/pages.yml` — GitHub Pages build/deploy schedule.
-- `docs/` — preview images.
-
-No client framework is used. The interface renders from small data-driven
-template functions, keeping the shipping client small and auditable.
+- `server/` — Express API, upstream fetch/caching, 12-model consensus engine, and IRM live service.
+- `src-static/static-api.ts` — Browser entry that bundles the consensus engine and Capacitor plugins into `dist/js/dfwmeteo-api.js`.
+- `public/` — Dependency-free browser client, custom SVG charts and visual system.
+- `android/` — Native Capacitor 8 Android project targeting API 36 with hardware back button listener.
+- `shared/` — TypeScript interfaces, types and WMO weather codes.
+- `scripts/` — Build tools, IRM 34-centre snapshot fetcher, consensus tests, and i18n validator.
+- `.github/workflows/` — `build-apk.yml` (Android release) and `pages.yml` (GitHub Pages deploy).
