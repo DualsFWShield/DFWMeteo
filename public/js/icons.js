@@ -144,6 +144,40 @@ function fogLines() {
   </g>`;
 }
 
+const GLYPH_DEFS = `<defs>
+  <radialGradient id="wx-sun" cx="38%" cy="34%" r="72%">
+    <stop offset="0%" stop-color="#fff6d8" />
+    <stop offset="48%" stop-color="#f8d187" />
+    <stop offset="100%" stop-color="#e8a94f" />
+  </radialGradient>
+  <radialGradient id="wx-sun-glow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#f7cd83" stop-opacity=".5" />
+    <stop offset="100%" stop-color="#f7cd83" stop-opacity="0" />
+  </radialGradient>
+  <linearGradient id="wx-moon" x1="20%" y1="5%" x2="80%" y2="95%">
+    <stop offset="0%" stop-color="#fbf7ea" />
+    <stop offset="60%" stop-color="#dfe5ee" />
+    <stop offset="100%" stop-color="#aebed8" />
+  </linearGradient>
+  <linearGradient id="wx-cloud" x1="18%" y1="8%" x2="82%" y2="96%">
+    <stop offset="0%" stop-color="#fbfdff" />
+    <stop offset="45%" stop-color="#dbe5f4" />
+    <stop offset="100%" stop-color="#9fb2cf" />
+  </linearGradient>
+  <linearGradient id="wx-cloud-back" x1="18%" y1="8%" x2="82%" y2="96%">
+    <stop offset="0%" stop-color="#bccbe1" />
+    <stop offset="100%" stop-color="#7185a6" />
+  </linearGradient>
+  <linearGradient id="wx-rain" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#a7d4ff" />
+    <stop offset="100%" stop-color="#5f9ce8" />
+  </linearGradient>
+  <linearGradient id="wx-bolt" x1="0%" y1="0%" x2="80%" y2="100%">
+    <stop offset="0%" stop-color="#ffe2a1" />
+    <stop offset="100%" stop-color="#f4b64f" />
+  </linearGradient>
+</defs>`;
+
 export function weatherGlyph(code, isDay, size = "md", className = "", label = "") {
   const info = weatherInfo(code);
   const group = info.group;
@@ -179,7 +213,7 @@ export function weatherGlyph(code, isDay, size = "md", className = "", label = "
 
   const sizeClass = size ? `wx-glyph--${size}` : "";
   return `<span class="wx-glyph ${sizeClass} ${className}" role="img" aria-label="${label}">
-    <svg viewBox="0 0 120 122" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${art}</svg>
+    <svg viewBox="0 0 120 122" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${GLYPH_DEFS}${art}</svg>
   </span>`;
 }
 

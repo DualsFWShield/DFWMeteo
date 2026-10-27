@@ -901,7 +901,8 @@ function starsMarkup(weather) {
     seed = (seed * 1664525 + 1013904223) % 4294967296;
     return seed / 4294967296;
   };
-  const count = weather.current.isDay ? 34 : 86;
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+  const count = weather.current.isDay ? (isMobile ? 14 : 26) : (isMobile ? 32 : 58);
   const stars = Array.from({ length: count }, (_, index) => {
     const x = (random() * 100).toFixed(2);
     const y = (random() * 100).toFixed(2);
@@ -1927,6 +1928,9 @@ function renderApp() {
     document.querySelectorAll(".card, .hero, .advisory-bar").forEach((element, index) => {
       element.style.setProperty("--reveal-index", String(index));
     });
+    setTimeout(() => {
+      document.documentElement.classList.add("has-rendered");
+    }, 750);
   });
 }
 
@@ -2924,6 +2928,7 @@ function setMotion(value) {
 async function changePlace(place) {
   const normalized = normalisePlace(place);
   const changed = !isSamePlace(state.place, normalized);
+  if (changed) document.documentElement.classList.remove("has-rendered");
   state.place = normalized;
   if (state.controller) state.controller.abort();
   state.error = null;
