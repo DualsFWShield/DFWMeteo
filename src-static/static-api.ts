@@ -1,5 +1,6 @@
 import { App as CapacitorApp } from "@capacitor/app";
 import { geocode, reverseGeocode } from "../server/geocode.ts";
+import { getPrecipMap } from "../server/precip-map.ts";
 import { getWeather } from "../server/weather.ts";
 import { parseIrmForecast, irmCodeToWmo } from "../server/irm-core.ts";
 
@@ -9,6 +10,7 @@ import { parseIrmForecast, irmCodeToWmo } from "../server/irm-core.ts";
  */
 const api = {
   weather: getWeather,
+  precipMap: getPrecipMap,
   geocode,
   reverseGeocode,
   parseIrmForecast,

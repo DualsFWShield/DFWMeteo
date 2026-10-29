@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { geocode, reverseGeocode } from "./geocode.ts";
 import { getIrmOfficial, isBelgiumCoordinate } from "./irm.ts";
+import { getPrecipMap } from "./precip-map.ts";
 import { getWeather } from "./weather.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -73,6 +74,27 @@ app.get("/api/weather", async (req, res, next) => {
     res.setHeader("Cache-Control", "private, max-age=30");
     res.setHeader("X-DFWMeteo-Cache", payload.cacheState);
     res.json({ ...payload, official });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/precip-map", async (req, res, next) => {
+  try {
+    const latitude = Number(req.query.lat);
+    const longitude = Number(req.query.lon);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      res.status(400).json({ error: "invalid_latitude" });
+      return;
+    }
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      res.status(400).json({ error: "invalid_longitude" });
+      return;
+    }
+
+    const map = await getPrecipMap(latitude, longitude);
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.json(map);
   } catch (error) {
     next(error);
   }

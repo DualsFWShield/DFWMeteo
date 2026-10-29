@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { DICTS, missingKeys, hasKey } from "../public/js/i18n.js";
 
-const files = ["public/js/app.js", "public/js/charts.js"];
+const files = ["public/js/app.js", "public/js/charts.js", "public/js/precip-map.js"];
 const keys = new Set();
 for (const file of files) {
   const text = fs.readFileSync(file, "utf8");
@@ -19,4 +19,5 @@ if (missing.length) console.log(missing.join("\n"));
 for (const locale of Object.keys(DICTS)) {
   const missingLocale = missingKeys(locale).filter((key) => keys.has(key));
   console.log(`${locale}: ${missingKeys(locale).length} missing overall; ${missingLocale.length} used keys missing`);
+  if (missingLocale.length) console.log(missingLocale.sort().join("\n"));
 }

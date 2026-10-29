@@ -1,4 +1,4 @@
-const CACHE_NAME = "dfwmeteo-v2";
+const CACHE_NAME = "dfwmeteo-v3";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
   "./js/i18n.js",
   "./js/icons.js",
   "./js/dfwmeteo-api.js",
+  "./js/precip-map.js",
   "./data/irm.json",
 ];
 

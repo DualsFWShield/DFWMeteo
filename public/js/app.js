@@ -51,6 +51,16 @@ import {
 } from "./format.js";
 import { t } from "./i18n.js";
 import {
+  handlePrecipInput,
+  initPrecipMap,
+  precipMapMarkup,
+  recenterPrecip,
+  retryPrecip,
+  setPrecipFrame,
+  togglePrecipPlay,
+  zoomPrecip,
+} from "./precip-map.js";
+import {
   advisoryIcon,
   agreementRing,
   brandMark,
@@ -116,6 +126,7 @@ const state = {
   units: "metric",
   locale: "en",
   motion: "full",
+  theme: "aurora",
   favorites: [],
   hourlyView: "overview",
   hourlyMetric: "temp",
@@ -182,6 +193,7 @@ function loadPreferences() {
       : reduceMotion
         ? "reduced"
         : "full";
+  state.theme = ["aurora", "pixel", "nothing"].includes(prefs.theme) ? prefs.theme : "aurora";
   state.favorites = Array.isArray(readStorage(STORAGE.favorites, []))
     ? readStorage(STORAGE.favorites, []).filter(isValidPlace)
     : [];
@@ -193,12 +205,21 @@ function savePreferences() {
     units: state.units,
     locale: state.locale,
     motion: state.motion,
+    theme: state.theme,
   });
 }
 
 function applyPreferences() {
   document.documentElement.lang = state.locale;
   document.documentElement.classList.toggle("reduce-motion", state.motion === "reduced");
+  document.documentElement.dataset.theme = state.theme;
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) {
+    themeColor.setAttribute(
+      "content",
+      state.theme === "pixel" ? "#eaf2fb" : state.theme === "nothing" ? "#000000" : "#070b14",
+    );
+  }
 }
 
 function loadLastPlace() {
@@ -894,6 +915,9 @@ function headerMarkup() {
         )}" title="${escapeHtml(
           tr(state.units === "metric" ? "nav.switchToF" : "nav.switchToC"),
         )}">${temperatureUnit()}</button>
+        <button class="icon-button" data-action="open-data" aria-label="${escapeHtml(
+          tr("nav.data"),
+        )}" title="${escapeHtml(tr("nav.data"))}">${uiIcon("database", 18)}</button>
         <button class="icon-button" data-action="settings" aria-label="${escapeHtml(
           tr("nav.settings"),
         )}" title="${escapeHtml(tr("nav.settings"))}">${uiIcon("settings", 18)}</button>
@@ -1926,6 +1950,7 @@ function footerMarkup() {
       </div>
       <div class="footer-column">
         <span>DFWMeteo</span>
+        <button data-action="open-data">${escapeHtml(tr("footer.dataExplorer"))}</button>
         <button data-action="method">${escapeHtml(tr("footer.method"))}</button>
         <button data-action="settings">${escapeHtml(tr("footer.settings"))}</button>
         <button data-action="copy-link">${uiIcon("copy", 11)} ${escapeHtml(
@@ -1977,6 +2002,13 @@ function renderApp() {
         ${hourlyMarkup(weather)}
         ${dailyMarkup(weather)}
         ${sunMarkup(weather)}
+        ${precipMapMarkup(weather, {
+          tr,
+          units: state.units,
+          locale: state.locale,
+          theme: state.theme,
+          placeName: displayName(state.place),
+        })}
         ${airMarkup(weather)}
         ${nowcastMarkup(weather)}
         ${detailsMarkup(weather)}
@@ -1986,6 +2018,14 @@ function renderApp() {
   document.body.dataset.weather = group;
   document.body.dataset.day = weather.current.isDay ? "day" : "night";
   updateRefreshButton();
+  initPrecipMap({
+    weather,
+    tr,
+    units: state.units,
+    locale: state.locale,
+    theme: state.theme,
+    placeName: displayName(state.place),
+  });
   syncModalInert();
   requestAnimationFrame(() => {
     document.documentElement.classList.add("is-rendered");
@@ -2095,6 +2135,8 @@ function modalContent(modal) {
       return settingsModalContent();
     case "method":
       return methodModalContent();
+    case "data":
+      return dataModalContent();
     case "day":
       return dayModalContent(modal.payload);
     case "model":
@@ -2520,6 +2562,40 @@ function settingsModalContent() {
         </div>
       </section>
       <section class="settings-section">
+        <div class="settings-label"><h3>${escapeHtml(tr("settings.appearance"))}</h3><p>${escapeHtml(
+          tr("settings.appearanceSub"),
+        )}</p></div>
+        <div class="option-grid option-grid--3">
+          ${optionCard({
+            action: "set-theme",
+            attribute: "data-theme",
+            value: "aurora",
+            selected: state.theme === "aurora",
+            icon: "sparkles",
+            title: tr("settings.themeAurora"),
+            sub: tr("settings.themeAuroraSub"),
+          })}
+          ${optionCard({
+            action: "set-theme",
+            attribute: "data-theme",
+            value: "pixel",
+            selected: state.theme === "pixel",
+            icon: "sun",
+            title: tr("settings.themePixel"),
+            sub: tr("settings.themePixelSub"),
+          })}
+          ${optionCard({
+            action: "set-theme",
+            attribute: "data-theme",
+            value: "nothing",
+            selected: state.theme === "nothing",
+            icon: "dot",
+            title: tr("settings.themeNothing"),
+            sub: tr("settings.themeNothingSub"),
+          })}
+        </div>
+      </section>
+      <section class="settings-section">
         <div class="settings-label"><h3>${escapeHtml(tr("settings.motion"))}</h3><p>${escapeHtml(
           tr("settings.motionSub"),
         )}</p></div>
@@ -2548,10 +2624,16 @@ function settingsModalContent() {
         <div class="settings-label"><h3>${escapeHtml(tr("settings.data"))}</h3><p>${escapeHtml(
           tr("settings.dataSub"),
         )}</p></div>
-        <button class="button button--ghost button--small" data-action="method">${uiIcon(
-          "layers",
-          15,
-        )} ${escapeHtml(tr("settings.method"))}</button>
+        <div class="settings-actions">
+          <button class="button button--ghost button--small" data-action="open-data">${uiIcon(
+            "database",
+            15,
+          )} ${escapeHtml(tr("settings.openData"))}</button>
+          <button class="button button--ghost button--small" data-action="method">${uiIcon(
+            "layers",
+            15,
+          )} ${escapeHtml(tr("settings.method"))}</button>
+        </div>
       </section>
       <section class="settings-section settings-section--row">
         <div class="settings-label"><h3>${escapeHtml(tr("settings.update"))}</h3><p>${escapeHtml(
@@ -2579,6 +2661,424 @@ function optionCard({ action, attribute, value, selected, icon, title, sub }) {
     <span class="option-copy"><b>${escapeHtml(title)}</b><small>${escapeHtml(sub)}</small></span>
     ${selected ? `<span class="option-check">${uiIcon("check", 13)}</span>` : ""}
   </button>`;
+}
+
+/* Data explorer ------------------------------------------------------ */
+
+function dataTable(columns, rows) {
+  if (!rows.length) {
+    return `<p class="data-empty">${escapeHtml(tr("data.empty"))}</p>`;
+  }
+  return `<div class="data-table-wrap"><table class="data-table">
+    <thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead>
+    <tbody>${rows
+      .map(
+        (row) =>
+          `<tr>${row
+            .map((cell) => `<td>${escapeHtml(cell == null ? "—" : String(cell))}</td>`)
+            .join("")}</tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`;
+}
+
+function dataBlock(title, body, { open = false, meta = "" } = {}) {
+  return `<details class="data-block" ${open ? "open" : ""}>
+    <summary><h3>${escapeHtml(title)}</h3><span class="data-block-meta">${escapeHtml(
+      meta,
+    )}${uiIcon("chevronDown", 14)}</span></summary>
+    <div class="data-block-body">${body}</div>
+  </details>`;
+}
+
+function dataModalContent() {
+  const weather = state.weather;
+  if (!weather) return "";
+  const locale = state.locale;
+  const units = state.units;
+  const place = displayName(state.place);
+  const temp = (value) => formatTemp(value, units, locale);
+  const precip = (value) => formatPrecip(value, units, locale);
+  const percent = (value) => formatPercent(value, locale);
+  const wind = (value) => formatWind(value, units, locale);
+  const pressure = (value) => formatPressure(value, units, locale);
+  const visibility = (value) => formatVisibility(value, units, locale);
+  const number = (value, digits = 1) => localeNumber(value, digits);
+  const code = (value) => tr(`wx.${weatherKey(value)}`);
+  const current = weather.current;
+
+  const overviewRows = [
+    [tr("data.temperature"), temp(current.temp)],
+    [tr("data.apparent"), temp(current.apparent)],
+    [tr("data.condition"), code(current.code)],
+    [tr("data.precipitation"), precip(current.precipitation)],
+    [tr("data.precipChance"), percent(current.precipitationProbability)],
+    [tr("data.wind"), wind(current.windSpeed)],
+    [tr("data.gust"), wind(current.windGust)],
+    [tr("data.direction"), `${Math.round(current.windDirection)}° · ${compassPoint(current.windDirection)}`],
+    [tr("data.humidity"), percent(current.humidity)],
+    [tr("data.dewPoint"), temp(current.dewPoint)],
+    [tr("data.pressure"), pressure(current.pressure)],
+    [tr("data.visibility"), visibility(current.visibility)],
+    [tr("data.uv"), number(current.uvIndex)],
+    [tr("data.cloud"), percent(current.cloudCover)],
+    [tr("data.high"), temp(current.high)],
+    [tr("data.low"), temp(current.low)],
+    [tr("data.confidence"), percent(current.confidence)],
+    [tr("data.agreement"), percent(current.agreement)],
+    [tr("data.spread"), formatDelta(current.spread, units, locale)],
+    [tr("data.sources"), String(current.sourceCount)],
+    [tr("data.updated"), formatHour(current.time, locale)],
+  ];
+
+  const meta = weather.meta;
+  const metaRows = [
+    [tr("data.generated"), new Date(meta.generatedAt).toLocaleString(LOCALE_TAGS[locale])],
+    [tr("data.expires"), new Date(meta.expiresAt).toLocaleString(LOCALE_TAGS[locale])],
+    [tr("data.mode"), meta.mode],
+    [tr("data.timezone"), `${meta.timezone} (${meta.timezoneAbbreviation || "UTC"})`],
+    [tr("data.utcOffset"), `${meta.utcOffsetSeconds / 3600 >= 0 ? "+" : ""}${number(
+      meta.utcOffsetSeconds / 3600,
+      1,
+    )} h`],
+    [tr("data.elevation"), `${Math.round(meta.elevation)} m`],
+    [tr("data.coordinates"), `${meta.resolved.latitude.toFixed(4)}, ${meta.resolved.longitude.toFixed(4)}`],
+    [tr("data.requested"), `${meta.requested.latitude.toFixed(4)}, ${meta.requested.longitude.toFixed(4)}`],
+    [tr("data.modelCount"), String(meta.modelCount)],
+    [tr("data.attribution"), meta.attribution],
+  ];
+
+  const hourlyColumns = [
+    tr("data.time"),
+    tr("data.temp"),
+    tr("data.apparent"),
+    tr("data.condition"),
+    tr("data.precipitation"),
+    tr("data.rain"),
+    tr("data.showers"),
+    tr("data.snow"),
+    tr("data.precipChance"),
+    tr("data.wind"),
+    tr("data.gust"),
+    tr("data.direction"),
+    tr("data.humidity"),
+    tr("data.dewPoint"),
+    tr("data.pressure"),
+    tr("data.visibility"),
+    tr("data.uv"),
+    tr("data.cloud"),
+    tr("data.confidence"),
+    tr("data.spread"),
+  ];
+  const hourlyRows = weather.hourly.slice(0, 48).map((hour) => [
+    formatHour(hour.time, locale),
+    temp(hour.temp),
+    temp(hour.apparent),
+    code(hour.code),
+    precip(hour.precipitation),
+    precip(hour.rain),
+    precip(hour.showers),
+    precip(hour.snow),
+    percent(hour.precipitationProbability),
+    wind(hour.windSpeed),
+    wind(hour.windGust),
+    `${Math.round(hour.windDirection)}°`,
+    percent(hour.humidity),
+    temp(hour.dewPoint),
+    pressure(hour.pressure),
+    visibility(hour.visibility),
+    number(hour.uvIndex),
+    percent(hour.cloudCover),
+    percent(hour.confidence),
+    formatDelta(hour.spread, units, locale),
+  ]);
+
+  const dailyColumns = [
+    tr("data.date"),
+    tr("data.condition"),
+    tr("data.high"),
+    tr("data.low"),
+    tr("data.apparentHigh"),
+    tr("data.apparentLow"),
+    tr("data.precipTotal"),
+    tr("data.precipChance"),
+    tr("data.precipHours"),
+    tr("data.wind"),
+    tr("data.gust"),
+    tr("data.direction"),
+    tr("data.uv"),
+    tr("data.sunrise"),
+    tr("data.sunset"),
+    tr("data.daylight"),
+    tr("data.confidence"),
+    tr("data.spread"),
+  ];
+  const dailyRows = weather.daily.map((day) => [
+    formatDateLong(day.date, locale),
+    code(day.code),
+    temp(day.max),
+    temp(day.min),
+    temp(day.apparentMax),
+    temp(day.apparentMin),
+    precip(day.precipitationSum),
+    percent(day.precipitationProbability),
+    number(day.precipitationHours, 0),
+    wind(day.windMax),
+    wind(day.gustMax),
+    `${Math.round(day.windDirection)}° · ${compassPoint(day.windDirection)}`,
+    number(day.uvMax),
+    formatHour(day.sunrise, locale),
+    formatHour(day.sunset, locale),
+    formatDaylight(day.daylightSeconds, locale),
+    percent(day.confidence),
+    formatDelta(day.spread, units, locale),
+  ]);
+
+  const modelColumns = [
+    tr("data.source"),
+    tr("data.available"),
+    tr("data.temp"),
+    tr("data.apparent"),
+    tr("data.precipitation"),
+    tr("data.wind"),
+    tr("data.gust"),
+    tr("data.direction"),
+    tr("data.humidity"),
+    tr("data.pressure"),
+    tr("data.visibility"),
+    tr("data.uv"),
+    tr("data.cloud"),
+    tr("data.influence"),
+    tr("data.prior"),
+    tr("data.deviation"),
+    tr("data.meanDeviation"),
+  ];
+  const modelRows = weather.sources.map((source) => [
+    source.shortName,
+    source.available ? tr("data.yes") : tr("data.no"),
+    temp(source.current.temp),
+    temp(source.current.apparent),
+    precip(source.current.precipitation),
+    source.current.windSpeed == null ? "—" : wind(source.current.windSpeed),
+    source.current.windGust == null ? "—" : wind(source.current.windGust),
+    source.current.windDirection == null
+      ? "—"
+      : `${Math.round(source.current.windDirection)}° · ${compassPoint(source.current.windDirection)}`,
+    source.current.humidity == null ? "—" : percent(source.current.humidity),
+    source.current.pressure == null ? "—" : pressure(source.current.pressure),
+    source.current.visibility == null ? "—" : visibility(source.current.visibility),
+    source.current.uvIndex == null ? "—" : number(source.current.uvIndex),
+    source.current.cloudCover == null ? "—" : percent(source.current.cloudCover),
+    percent(source.influence * 100),
+    percent(source.priorWeight * 100),
+    source.deviation == null ? "—" : formatDelta(source.deviation, units, locale),
+    source.meanAbsDeviation == null
+      ? "—"
+      : formatAbsDelta(source.meanAbsDeviation, units, locale, 2),
+  ]);
+
+  const modelSeries = weather.sources
+    .map((source) => {
+      const rows = weather.hourly.slice(0, 48).map((hour, index) => [
+        formatHour(hour.time, locale),
+        source.hourlyTemp[index] == null ? "—" : temp(source.hourlyTemp[index]),
+        source.hourlyPrecip[index] == null ? "—" : precip(source.hourlyPrecip[index]),
+        source.hourlyPrecipProbability[index] == null
+          ? "—"
+          : percent(source.hourlyPrecipProbability[index]),
+        source.hourlyWind[index] == null ? "—" : wind(source.hourlyWind[index]),
+        source.hourlyCode[index] == null ? "—" : code(source.hourlyCode[index]),
+      ]);
+      return `<details class="data-subblock">
+        <summary><i class="model-swatch" style="--source-color:${source.color}"></i><b>${escapeHtml(
+          source.shortName,
+        )}</b><span>${escapeHtml(source.name)} · ${escapeHtml(
+          source.center,
+        )}</span>${uiIcon("chevronDown", 13)}</summary>
+        ${dataTable(
+          [
+            tr("data.time"),
+            tr("data.temp"),
+            tr("data.precipitation"),
+            tr("data.precipChance"),
+            tr("data.wind"),
+            tr("data.condition"),
+          ],
+          rows,
+        )}
+      </details>`;
+    })
+    .join("");
+
+  const air = weather.airQuality;
+  const airBody = air
+    ? `${dataTable(
+        [tr("data.metric"), tr("data.value")],
+        [
+          [tr("data.aqi"), number(air.aqi, 0)],
+          [tr("data.usAqi"), air.usAqi == null ? "—" : number(air.usAqi, 0)],
+          [tr("data.level"), tr(`air.level.${aqiKey(air.level)}`)],
+          [tr("data.pm25"), air.pm2_5 == null ? "—" : `${number(air.pm2_5)} µg/m³`],
+          [tr("data.pm10"), air.pm10 == null ? "—" : `${number(air.pm10)} µg/m³`],
+          [tr("data.no2"), air.no2 == null ? "—" : `${number(air.no2)} µg/m³`],
+          [tr("data.so2"), air.so2 == null ? "—" : `${number(air.so2)} µg/m³`],
+          [tr("data.o3"), air.o3 == null ? "—" : `${number(air.o3)} µg/m³`],
+          [tr("data.co"), air.co == null ? "—" : `${number(air.co)} µg/m³`],
+          [tr("data.updated"), new Date(air.updatedAt).toLocaleString(LOCALE_TAGS[locale])],
+        ],
+      )}
+      <h4 class="data-subtitle">${escapeHtml(tr("data.pollen"))}</h4>
+      ${dataTable(
+        [tr("data.species"), tr("data.value")],
+        [
+          [tr("data.alder"), air.pollen.alder == null ? "—" : number(air.pollen.alder)],
+          [tr("data.birch"), air.pollen.birch == null ? "—" : number(air.pollen.birch)],
+          [tr("data.grass"), air.pollen.grass == null ? "—" : number(air.pollen.grass)],
+          [tr("data.mugwort"), air.pollen.mugwort == null ? "—" : number(air.pollen.mugwort)],
+          [tr("data.olive"), air.pollen.olive == null ? "—" : number(air.pollen.olive)],
+          [tr("data.ragweed"), air.pollen.ragweed == null ? "—" : number(air.pollen.ragweed)],
+        ],
+      )}
+      <h4 class="data-subtitle">${escapeHtml(tr("data.hourlyAqi"))}</h4>
+      <div class="data-inline">${air.hourlyAqi
+        .map(
+          (value, index) =>
+            `<span><i>${escapeHtml(String(index).padStart(2, "0"))}</i>${escapeHtml(
+              number(value, 0),
+            )}</span>`,
+        )
+        .join("")}</div>`
+    : `<p class="data-empty">${escapeHtml(tr("data.empty"))}</p>`;
+
+  const nowcastRows = weather.nowcast.map((point) => [
+    formatHour(point.time, locale),
+    precip(point.precipitation),
+    percent(point.probability),
+  ]);
+
+  const sun = weather.sun;
+  const sunBody = dataTable(
+    [tr("data.metric"), tr("data.value")],
+    [
+      [tr("data.sunrise"), formatHour(sun.sunrise, locale)],
+      [tr("data.sunset"), formatHour(sun.sunset, locale)],
+      [tr("data.solarNoon"), formatHour(sun.solarNoon, locale)],
+      [tr("data.daylight"), formatDaylight(sun.daylightSeconds, locale)],
+      [tr("data.moonPhase"), tr(`sun.phase.${sun.moon.nameKey}`)],
+      [tr("data.moonIllumination"), percent(sun.moon.illumination)],
+    ],
+  );
+
+  const official = weather.official;
+  const officialBody = official
+    ? `${dataTable(
+        [tr("data.metric"), tr("data.value")],
+        [
+          [tr("data.provider"), official.provider],
+          [tr("data.station"), official.name],
+          [tr("data.distance"), `${number(official.distanceKm)} km`],
+          [tr("data.updated"), new Date(official.updatedAt).toLocaleString(LOCALE_TAGS[locale])],
+          [tr("data.mode"), official.mode],
+          [tr("data.temperature"), temp(official.current.temp)],
+          [tr("data.condition"), code(official.current.code)],
+          [tr("data.wind"), official.current.windSpeed == null ? "—" : wind(official.current.windSpeed)],
+          [tr("data.gust"), official.current.windGust == null ? "—" : wind(official.current.windGust)],
+          [tr("data.precipitation"), official.current.precipitation == null ? "—" : precip(official.current.precipitation)],
+          [tr("data.precipChance"), official.current.precipitationProbability == null ? "—" : percent(official.current.precipitationProbability)],
+          [tr("data.pressure"), official.current.pressure == null ? "—" : pressure(official.current.pressure)],
+          [tr("data.high"), official.daily?.max == null ? "—" : temp(official.daily.max)],
+          [tr("data.low"), official.daily?.min == null ? "—" : temp(official.daily.min)],
+        ],
+      )}
+      <h4 class="data-subtitle">${escapeHtml(tr("data.warnings"))}</h4>
+      ${dataTable(
+        [tr("data.warningLevel"), tr("data.warningTitle"), tr("data.period"), tr("data.text")],
+        official.warnings.map((warning) => [
+          warning.level == null ? "—" : String(warning.level),
+          warning.title,
+          `${formatHour(warning.startsAt, locale)} → ${formatHour(warning.endsAt, locale)}`,
+          warning.text,
+        ]),
+      )}`
+    : `<p class="data-empty">${escapeHtml(tr("data.noOfficial"))}</p>`;
+
+  return `<div class="data-shell">
+    ${modalHeader({
+      eyebrow: tr("data.eyebrow"),
+      title: tr("data.title"),
+      closeLabel: tr("data.close"),
+    })}
+    <div class="data-intro">
+      <p>${escapeHtml(tr("data.sub", { place }))}</p>
+      <button class="button button--primary button--small" data-action="download-data">${uiIcon(
+        "download",
+        15,
+      )} ${escapeHtml(tr("data.download"))}</button>
+    </div>
+    ${dataBlock(tr("data.overview"), dataTable([tr("data.metric"), tr("data.value")], overviewRows), {
+      open: true,
+      meta: tr("data.current"),
+    })}
+    ${dataBlock(tr("data.meta"), dataTable([tr("data.metric"), tr("data.value")], metaRows), {
+      meta: meta.mode,
+    })}
+    ${dataBlock(
+      tr("data.hourly"),
+      dataTable(hourlyColumns, hourlyRows),
+      { open: true, meta: `${hourlyRows.length} h` },
+    )}
+    ${dataBlock(tr("data.daily"), dataTable(dailyColumns, dailyRows), {
+      meta: `${dailyRows.length} d`,
+    })}
+    ${dataBlock(
+      tr("data.models"),
+      `${dataTable(modelColumns, modelRows)}${modelSeries}`,
+      { meta: `${modelRows.length}` },
+    )}
+    ${dataBlock(tr("data.air"), airBody)}
+    ${dataBlock(
+      tr("data.nowcast"),
+      dataTable([tr("data.time"), tr("data.precipitation"), tr("data.precipChance")], nowcastRows),
+      { meta: `${nowcastRows.length}` },
+    )}
+    ${dataBlock(tr("data.sun"), sunBody)}
+    ${dataBlock(tr("data.official"), officialBody)}
+    <div class="modal-actions">
+      <button class="button button--ghost" data-action="download-data">${uiIcon(
+        "download",
+        15,
+      )} ${escapeHtml(tr("data.download"))}</button>
+      <button class="button button--primary" data-action="close-modal">${escapeHtml(
+        tr("common.close"),
+      )}</button>
+    </div>
+  </div>`;
+}
+
+function downloadWeatherData() {
+  if (!state.weather) return;
+  const payload = {
+    app: "DFWMeteo",
+    exportedAt: new Date().toISOString(),
+    place: state.place,
+    units: state.units,
+    locale: state.locale,
+    weather: state.weather,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const slug = String(state.place.name || "weather")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  link.href = url;
+  link.download = `dfwmeteo-${slug || "weather"}-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast(tr("data.downloaded"), "success");
 }
 
 /* Method modal ------------------------------------------------------- */
@@ -2999,6 +3499,17 @@ function setMotion(value) {
   });
 }
 
+function setTheme(value) {
+  state.theme = ["aurora", "pixel", "nothing"].includes(value) ? value : "aurora";
+  savePreferences();
+  applyPreferences();
+  if (state.modal) renderModal();
+  if (state.weather) renderApp();
+  requestAnimationFrame(() => {
+    document.querySelector(`[data-action="set-theme"][data-theme="${state.theme}"]`)?.focus();
+  });
+}
+
 async function changePlace(place) {
   const normalized = normalisePlace(place);
   const changed = !isSamePlace(state.place, normalized);
@@ -3168,6 +3679,35 @@ function handleAction(event) {
     case "set-motion":
       setMotion(actionElement.dataset.motion);
       break;
+    case "set-theme":
+      setTheme(actionElement.dataset.theme);
+      break;
+    case "open-data":
+      event.preventDefault();
+      openModal("data");
+      break;
+    case "download-data":
+      event.preventDefault();
+      downloadWeatherData();
+      break;
+    case "precip-play":
+      togglePrecipPlay();
+      break;
+    case "precip-hour":
+      setPrecipFrame(Number(actionElement.dataset.index));
+      break;
+    case "precip-zoom-in":
+      zoomPrecip(1);
+      break;
+    case "precip-zoom-out":
+      zoomPrecip(-1);
+      break;
+    case "precip-recenter":
+      recenterPrecip();
+      break;
+    case "precip-retry":
+      retryPrecip();
+      break;
     case "select-place": {
       const index = Number(actionElement.dataset.index);
       selectSearchItem(index);
@@ -3276,7 +3816,9 @@ function trapFocus(event) {
 function handleDocumentInput(event) {
   if (event.target?.matches?.("[data-search-input]")) {
     handleSearchInput(event.target.value);
+    return;
   }
+  handlePrecipInput(event.target);
 }
 
 function bindEvents() {

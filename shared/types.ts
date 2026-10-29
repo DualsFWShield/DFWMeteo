@@ -96,6 +96,8 @@ export interface HourlyPoint {
   isDay: boolean;
   precipitation: number;
   precipitationProbability: number;
+  rain: number;
+  showers: number;
   snow: number;
   windSpeed: number;
   windGust: number;
@@ -126,6 +128,7 @@ export interface DailyPoint {
   uvMax: number;
   sunrise: string;
   sunset: string;
+  daylightSeconds: number;
   confidence: number;
   spread: number;
 }
@@ -249,4 +252,29 @@ export interface WeatherPayload {
 
 export interface GeocodeResponse {
   results: GeoResult[];
+}
+
+export interface PrecipMapFrame {
+  /** Local ISO hour, for example 2026-10-29T14:00. */
+  time: string;
+  /** Row-major precipitation rate in mm/h, north to south, west to east. */
+  values: number[];
+  /** Highest value in this frame, in mm/h. */
+  max: number;
+}
+
+export interface PrecipMap {
+  generatedAt: string;
+  timezone: string;
+  utcOffsetSeconds: number;
+  center: { latitude: number; longitude: number };
+  bounds: { north: number; south: number; east: number; west: number };
+  rows: number;
+  cols: number;
+  /** Row latitudes, north to south. */
+  lats: number[];
+  /** Column longitudes, west to east. */
+  lons: number[];
+  frames: PrecipMapFrame[];
+  attribution: string;
 }

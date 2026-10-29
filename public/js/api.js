@@ -324,6 +324,21 @@ export async function fetchWeather(place, { signal, force = false, lang = "en" }
   return requestJson(`/api/weather?${query}`, { signal });
 }
 
+export async function fetchPrecipitationMap(latitude, longitude, { signal } = {}) {
+  throwIfAborted(signal);
+  const client = staticApi();
+  if (client?.precipMap) {
+    const payload = await client.precipMap(Number(latitude), Number(longitude));
+    throwIfAborted(signal);
+    return payload;
+  }
+  const params = new URLSearchParams({
+    lat: String(latitude),
+    lon: String(longitude),
+  });
+  return requestJson(`/api/precip-map?${params.toString()}`, { signal, timeout: 25000 });
+}
+
 export async function searchPlaces(query, language = "en", { signal } = {}) {
   throwIfAborted(signal);
   const client = staticApi();

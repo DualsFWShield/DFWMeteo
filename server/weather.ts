@@ -497,6 +497,8 @@ async function fetchWeatherData(query: WeatherQuery): Promise<WeatherPayload> {
         2,
       ),
       precipitationProbability: precipProbability(liveSources, index),
+      rain: weightedNumber(samples(liveSources, "rain", index), 0, false, 2),
+      showers: weightedNumber(samples(liveSources, "showers", index), 0, false, 2),
       snow: weightedNumber(samples(liveSources, "snowfall", index), 0, false, 2),
       windSpeed: weightedNumber(samples(liveSources, "wind_speed_10m", index), 0),
       windGust: weightedNumber(samples(liveSources, "wind_gusts_10m", index), 0),
@@ -601,6 +603,12 @@ async function fetchWeatherData(query: WeatherQuery): Promise<WeatherPayload> {
       uvMax: weightedNumber(dailySamples(liveSources, "uv_index_max", index), 0, false, 1),
       sunrise,
       sunset,
+      daylightSeconds: weightedNumber(
+        dailySamples(liveSources, "daylight_duration", index),
+        0,
+        false,
+        0,
+      ),
       confidence,
       spread: round(spread, 1),
     });

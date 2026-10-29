@@ -104,6 +104,7 @@ export function modelSpreadChart({
 
   let min = Math.min(...allValues);
   let max = Math.max(...allValues);
+  let tickValues = [];
   if (!Number.isFinite(min) || !Number.isFinite(max)) {
     min = 0;
     max = 1;
