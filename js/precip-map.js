@@ -1,6 +1,7 @@
 import { fetchPrecipitationMap } from "./api.js";
 import { escapeHtml, formatHour, formatPrecip } from "./format.js";
 import { uiIcon } from "./icons.js";
+import { RainGraphGenerator } from "./irm.js";
 
 const ZOOM_MIN = 6;
 const ZOOM_MAX = 10;
@@ -227,12 +228,55 @@ function drawRain(canvas, width, height, data, frame, center, zoom) {
 /* ------------------------------------------------------------------ */
 
 export function precipMapMarkup(weather, options = {}) {
-  const { tr, units = "metric", locale = "en", theme, placeName } = options;
+  const { tr, units = "metric", locale = "en", theme, placeName, radarSource = "carto" } = options;
   prepare(weather.location, theme);
   mapState.tr = tr || mapState.tr;
   mapState.units = units;
   mapState.locale = locale;
   mapState.placeName = placeName || weather.location.name || "";
+
+  const isIrm = radarSource === "irm";
+  const sourceSwitchHtml = `
+    <div class="radar-source-switch" role="group" aria-label="${escapeHtml(translate("settings.radarSource"))}">
+      <button class="radar-source-btn ${!isIrm ? "is-active" : ""}" data-action="set-radar-source" data-radar-source="carto">${escapeHtml(translate("precip.sourceCarto"))}</button>
+      <button class="radar-source-btn ${isIrm ? "is-active" : ""}" data-action="set-radar-source" data-radar-source="irm">${escapeHtml(translate("precip.sourceIrm"))}</button>
+    </div>`;
+
+  if (isIrm) {
+    const animData = weather.official?.animation || null;
+    return `<section class="card precip-card precip-card--irm" id="precip" aria-labelledby="precip-title">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">${uiIcon("droplet", 12)} ${escapeHtml(translate("precip.irmEyebrow"))}</p>
+        <h2 id="precip-title">${escapeHtml(translate("precip.irmTitle"))}</h2>
+      </div>
+      ${sourceSwitchHtml}
+    </div>
+    ${
+      animData
+        ? `<div class="irm-radar-stage">
+            ${RainGraphGenerator.buildSvg(animData, { theme: mapState.theme, lang: mapState.locale })}
+            ${animData.hint ? `<div class="irm-radar-hint">${uiIcon("droplet", 14)} <span>${escapeHtml(animData.hint)}</span></div>` : ""}
+          </div>
+          <div class="precip-foot">
+            <p class="precip-summary">
+              ${escapeHtml(animData.hint || translate("precip.irmCoverage"))}
+            </p>
+            <div class="irm-radar-badge">
+              <span>${escapeHtml(weather.official?.name || mapState.placeName)}</span> · <span>${escapeHtml(translate("precip.irmCoverage"))}</span>
+            </div>
+          </div>`
+        : `<div class="irm-radar-stage irm-radar-stage--empty">
+            <div class="empty-copy">
+              <p>${escapeHtml(translate("precip.irmEmpty"))}</p>
+              <button class="button button--ghost" data-action="set-radar-source" data-radar-source="carto">
+                ${uiIcon("map", 15)} <span>${escapeHtml(translate("precip.irmSwitchToCarto"))}</span>
+              </button>
+            </div>
+          </div>`
+    }
+  </section>`;
+  }
 
   const ready = Boolean(mapState.data && mapState.key === mapState.activeKey);
   const frames = ready ? mapState.data.frames : [];
@@ -250,9 +294,7 @@ export function precipMapMarkup(weather, options = {}) {
       <div><p class="eyebrow">${uiIcon("droplet", 12)} ${escapeHtml(
         translate("precip.eyebrow"),
       )}</p><h2 id="precip-title">${escapeHtml(translate("precip.title"))}</h2></div>
-      <span class="subtle-pill">${uiIcon("clock", 12)} ${escapeHtml(
-        translate("precip.sub"),
-      )}</span>
+      ${sourceSwitchHtml}
     </div>
     <div class="precip-stage" data-precip-stage>
       <div class="precip-tiles" data-precip-tiles aria-hidden="true"></div>
@@ -611,8 +653,12 @@ function bindStage(stage) {
 }
 
 export function initPrecipMap(options = {}) {
-  const { weather, tr, units = "metric", locale = "en", theme, placeName, force = false } = options;
+  const { weather, tr, units = "metric", locale = "en", theme, placeName, force = false, radarSource = "carto" } = options;
   if (!weather?.location) return;
+  if (radarSource === "irm") {
+    stopPlaying();
+    return;
+  }
   if (force) {
     mapState.key = null;
     mapState.data = null;

@@ -6874,6 +6874,96 @@ html:not(.has-rendered) .dashboard > .card {
 }
 
 /* ------------------------------------------------------------------ */
+/* Radar Source Switch & IRM Radar Stage                              */
+/* ------------------------------------------------------------------ */
+
+.radar-source-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.radar-source-btn {
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.radar-source-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.radar-source-btn.is-active {
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+}
+
+.irm-radar-stage {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 14px 12px;
+  background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08), transparent 70%), #0a1220;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.irm-radar-stage--empty {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 32px 20px;
+}
+
+.irm-radar-svg {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  display: block;
+  overflow: visible;
+}
+
+.irm-radar-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  font-size: 12px;
+  font-weight: 550;
+  align-self: flex-start;
+}
+
+.irm-radar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ */
 /* Data explorer                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -7782,6 +7872,52 @@ html:not(.has-rendered) .dashboard > .card {
 :root[data-theme="pixel"] .precip-summary {
   font-family: var(--font-ui);
   color: #9da3b8;
+}
+
+:root[data-theme="pixel"] .radar-source-switch {
+  background: #1d1f27;
+  border: none;
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+:root[data-theme="pixel"] .radar-source-btn {
+  color: #c4c7c5;
+  border-radius: 9999px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+}
+
+:root[data-theme="pixel"] .radar-source-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+:root[data-theme="pixel"] .radar-source-btn.is-active {
+  background: #8ab4f8;
+  color: #121318;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+:root[data-theme="pixel"] .irm-radar-stage {
+  background: #1d1f27;
+  border: none;
+  border-radius: 24px;
+  padding: 16px 16px 12px;
+}
+
+:root[data-theme="pixel"] .irm-radar-hint {
+  background: rgba(138, 180, 248, 0.12);
+  border: none;
+  color: #8ab4f8;
+  border-radius: 12px;
+  font-family: var(--font-ui);
+}
+
+:root[data-theme="pixel"] .irm-radar-badge {
+  font-family: var(--font-ui);
+  color: #9aa0a6;
 }
 
 :root[data-theme="pixel"] .precip-legend {
@@ -9230,6 +9366,60 @@ html:not(.has-rendered) .dashboard > .card {
 
 :root[data-theme="nothing"] .precip-legend {
   font-family: var(--font-display);
+}
+
+:root[data-theme="nothing"] .radar-source-switch {
+  background: #121214;
+  border: 1px solid #262629;
+  border-radius: 10px;
+  padding: 3px;
+}
+
+:root[data-theme="nothing"] .radar-source-btn {
+  color: #8c8c8e;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme="nothing"] .radar-source-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+:root[data-theme="nothing"] .radar-source-btn.is-active {
+  background: #ff281e;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+:root[data-theme="nothing"] .irm-radar-stage {
+  background: #000000;
+  border: 1px solid #262629;
+  border-radius: 18px;
+  padding: 16px 14px 12px;
+}
+
+:root[data-theme="nothing"] .irm-radar-hint {
+  background: rgba(255, 40, 30, 0.1);
+  border: 1px solid rgba(255, 40, 30, 0.28);
+  color: #ff281e;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+:root[data-theme="nothing"] .irm-radar-badge {
+  font-family: var(--font-display);
+  color: #8c8c8e;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 
 /* Nothing Air Quality & Pollen Card */

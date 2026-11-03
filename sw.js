@@ -1,4 +1,4 @@
-const CACHE_NAME = "dfwmeteo-v4";
+const CACHE_NAME = "dfwmeteo-v5";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -81,8 +81,14 @@ self.addEventListener("fetch", (event) => {
     url.hostname.includes("corsproxy.io")
   ) {
     const isForce = url.searchParams.has("_t");
+    const fetchTarget = isForce
+      ? new Request(request.url, {
+          method: "GET",
+          headers: request.headers,
+        })
+      : request;
     event.respondWith(
-      fetch(request, isForce ? { cache: "no-store" } : undefined)
+      fetch(fetchTarget)
         .then((response) => {
           if (response && response.status === 200) {
             const copy = response.clone();

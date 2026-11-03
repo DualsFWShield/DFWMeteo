@@ -130,6 +130,7 @@ const state = {
   locale: "en",
   motion: "full",
   theme: "aurora",
+  radarSource: "carto",
   favorites: [],
   hourlyView: "overview",
   hourlyMetric: "temp",
@@ -202,6 +203,12 @@ function loadPreferences() {
     : ["aurora", "pixel", "nothing"].includes(prefs.theme)
       ? prefs.theme
       : "aurora";
+  const urlRadar = new URLSearchParams(window.location.search).get("radar");
+  state.radarSource = ["carto", "irm"].includes(urlRadar)
+    ? urlRadar
+    : ["carto", "irm"].includes(prefs.radarSource)
+      ? prefs.radarSource
+      : "carto";
   state.favorites = Array.isArray(readStorage(STORAGE.favorites, []))
     ? readStorage(STORAGE.favorites, []).filter(isValidPlace)
     : [];
@@ -214,6 +221,7 @@ function savePreferences() {
     locale: state.locale,
     motion: state.motion,
     theme: state.theme,
+    radarSource: state.radarSource,
   });
 }
 
@@ -2542,6 +2550,7 @@ function renderApp(options = {}) {
           locale: state.locale,
           theme: state.theme,
           placeName: displayName(state.place),
+          radarSource: state.radarSource,
         })}
         ${airMarkup(weather)}
         ${nowcastMarkup(weather)}
@@ -2560,6 +2569,7 @@ function renderApp(options = {}) {
     theme: state.theme,
     placeName: displayName(state.place),
     force: options.force || false,
+    radarSource: state.radarSource,
   });
   syncModalInert();
   requestAnimationFrame(() => {
@@ -3152,6 +3162,31 @@ function settingsModalContent() {
             icon: "motion",
             title: tr("settings.motionReduced"),
             sub: tr("settings.motionSub"),
+          })}
+        </div>
+      </section>
+      <section class="settings-section">
+        <div class="settings-label"><h3>${escapeHtml(tr("settings.radarSource"))}</h3><p>${escapeHtml(
+          tr("settings.radarSourceSub"),
+        )}</p></div>
+        <div class="option-grid option-grid--2">
+          ${optionCard({
+            action: "set-radar-source",
+            attribute: "data-radar-source",
+            value: "carto",
+            selected: state.radarSource === "carto",
+            icon: "map",
+            title: tr("settings.radarCarto"),
+            sub: tr("settings.radarCartoSub"),
+          })}
+          ${optionCard({
+            action: "set-radar-source",
+            attribute: "data-radar-source",
+            value: "irm",
+            selected: state.radarSource === "irm",
+            icon: "droplet",
+            title: tr("settings.radarIrm"),
+            sub: tr("settings.radarIrmSub"),
           })}
         </div>
       </section>
@@ -4045,6 +4080,16 @@ function setTheme(value) {
   });
 }
 
+function setRadarSource(value) {
+  state.radarSource = value === "irm" ? "irm" : "carto";
+  savePreferences();
+  if (state.modal) renderModal();
+  if (state.weather) renderApp();
+  requestAnimationFrame(() => {
+    document.querySelector(`[data-action="set-radar-source"][data-radar-source="${state.radarSource}"]`)?.focus();
+  });
+}
+
 async function changePlace(place) {
   const normalized = normalisePlace(place);
   const changed = !isSamePlace(state.place, normalized);
@@ -4106,9 +4151,10 @@ async function requestWeather({ silent = false, initial = false, notify = false,
     renderApp({ force });
     if (notify) showToast(tr("toast.refreshed"), "success");
   } catch (error) {
-    if (seq !== state.requestSeq || error.name === "AbortError") return;
+    if (seq !== state.requestSeq) return;
     state.refreshing = false;
     updateRefreshButton();
+    if (error.name === "AbortError") return;
     if (state.weather) {
       state.cached = true;
       state.status = "ready";
@@ -4124,11 +4170,6 @@ async function requestWeather({ silent = false, initial = false, notify = false,
 
 function refreshForecast({ notify = true } = {}) {
   if (!state.weather && state.status !== "error") return;
-  if (state.place) {
-    try {
-      localStorage.removeItem(cacheKey(state.place));
-    } catch {}
-  }
   requestWeather({ silent: false, initial: false, notify, force: true });
 }
 
@@ -4221,6 +4262,9 @@ function handleAction(event) {
       break;
     case "set-theme":
       setTheme(actionElement.dataset.theme);
+      break;
+    case "set-radar-source":
+      setRadarSource(actionElement.dataset.radarSource);
       break;
     case "open-data":
       event.preventDefault();
