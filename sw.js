@@ -1,0 +1,156 @@
+const CACHE_NAME = "dfwmeteo-v4";
+const STATIC_ASSETS = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./manifest.webmanifest",
+  "./favicon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./gemini-svg.svg",
+  "./DFWMeteo-svg.svg",
+  "./fonts/manrope-latin.woff2",
+  "./fonts/manrope-latin-ext.woff2",
+  "./fonts/instrument-serif-latin.woff2",
+  "./fonts/instrument-serif-latin-ext.woff2",
+  "./fonts/instrument-serif-latin-italic.woff2",
+  "./js/app.js",
+  "./js/api.js",
+  "./js/weather.js",
+  "./js/consensus.js",
+  "./js/models.js",
+  "./js/geocode.js",
+  "./js/precip-grid.js",
+  "./js/precip-map.js",
+  "./js/irm.js",
+  "./js/wmo.js",
+  "./js/charts.js",
+  "./js/format.js",
+  "./js/i18n.js",
+  "./js/icons.js",
+  "./data/irm.json",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (key !== CACHE_NAME) {
+              return caches.delete(key);
+            }
+          }),
+        ),
+      )
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING" || event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+  if (event.data === "CLEAR_CACHE" || event.data?.type === "CLEAR_CACHE") {
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+  }
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+
+  // Weather and geocoding APIs: Network-first, fallback to cache
+  if (
+    url.hostname.includes("open-meteo.com") ||
+    url.hostname.includes("bigdatacloud.net") ||
+    url.pathname.includes("/data/irm.json") ||
+    url.hostname.includes("meteo.be") ||
+    url.hostname.includes("corsproxy.io")
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request)),
+    );
+    return;
+  }
+
+  // CARTO map tiles: Cache-first with network fallback
+  if (url.hostname.includes("cartocdn.com")) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        });
+      }),
+    );
+    return;
+  }
+
+  // Core app code & navigation: Network-first with Cache fallback
+  if (
+    request.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css")
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            if (request.mode === "navigate") {
+              return caches.match("./index.html");
+            }
+            return caches.match("./");
+          });
+        }),
+    );
+    return;
+  }
+
+  // Static assets (fonts, icons, svgs): Cache-first with network fallback
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response && response.status === 200 && (response.type === "basic" || response.type === "cors")) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      });
+    }),
+  );
+});
