@@ -12,12 +12,13 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 const cache = new Map();
 const inFlight = new Map();
 
-async function fetchJson(url, timeoutMs = 18000) {
+async function fetchJson(url, timeoutMs = 18000, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       signal: controller.signal,
+      cache: options.cache || "no-store",
       headers: { accept: "application/json" },
     });
     if (!response.ok) {
@@ -37,7 +38,7 @@ function cacheKey(latitude, longitude) {
   return `${Number(latitude).toFixed(2)}:${Number(longitude).toFixed(2)}`;
 }
 
-async function fetchPrecipMap(latitude, longitude) {
+async function fetchPrecipMap(latitude, longitude, force = false) {
   const centerLat = clamp(Number(latitude), -80, 80);
   const centerLon = clamp(Number(longitude), -179, 179);
   const halfLat = LAT_SPAN / 2;
@@ -68,6 +69,7 @@ async function fetchPrecipMap(latitude, longitude) {
     }
   }
 
+  const timestamp = force ? `&_t=${Date.now()}` : "";
   const params = new URLSearchParams({
     latitude: requestLats.join(","),
     longitude: requestLons.join(","),
@@ -77,7 +79,7 @@ async function fetchPrecipMap(latitude, longitude) {
   });
 
   const payload = await fetchJson(
-    `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
+    `https://api.open-meteo.com/v1/forecast?${params.toString()}${timestamp}`,
   );
   const locations = Array.isArray(payload) ? payload : [payload];
   if (!locations.length) {
@@ -123,17 +125,21 @@ async function fetchPrecipMap(latitude, longitude) {
   };
 }
 
-export async function getPrecipMap(latitude, longitude) {
+export async function getPrecipMap(latitude, longitude, { force = false } = {}) {
   const key = cacheKey(latitude, longitude);
+  if (force) {
+    cache.delete(key);
+    inFlight.delete(key);
+  }
   const cached = cache.get(key);
-  if (cached && cached.expiresAt > Date.now()) {
+  if (!force && cached && cached.expiresAt > Date.now()) {
     return cached.map;
   }
 
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const promise = fetchPrecipMap(latitude, longitude)
+  const promise = fetchPrecipMap(latitude, longitude, force)
     .then((map) => {
       cache.set(key, { map, expiresAt: Date.now() + CACHE_TTL_MS });
       if (cache.size > 40) {

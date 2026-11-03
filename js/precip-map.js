@@ -455,10 +455,10 @@ function paint() {
 /* Data loading                                                        */
 /* ------------------------------------------------------------------ */
 
-async function ensureData(place) {
+async function ensureData(place, force = false) {
   const key = keyFor(place);
-  if (mapState.key === key && mapState.data) return;
-  if (mapState.loading && mapState.loadKey === key) return;
+  if (!force && mapState.key === key && mapState.data) return;
+  if (!force && mapState.loading && mapState.loadKey === key) return;
   const sequence = ++mapState.requestSeq;
   mapState.loading = true;
   mapState.loadKey = key;
@@ -468,6 +468,7 @@ async function ensureData(place) {
     const payload = await fetchPrecipitationMap(
       Number(place.latitude),
       Number(place.longitude),
+      { force },
     );
     if (sequence !== mapState.requestSeq || mapState.activeKey !== key) return;
     mapState.data = payload;
@@ -610,8 +611,12 @@ function bindStage(stage) {
 }
 
 export function initPrecipMap(options = {}) {
-  const { weather, tr, units = "metric", locale = "en", theme, placeName } = options;
+  const { weather, tr, units = "metric", locale = "en", theme, placeName, force = false } = options;
   if (!weather?.location) return;
+  if (force) {
+    mapState.key = null;
+    mapState.data = null;
+  }
   prepare(weather.location, theme);
   mapState.tr = tr || mapState.tr;
   mapState.units = units;
@@ -623,7 +628,7 @@ export function initPrecipMap(options = {}) {
   bindStage(stage);
   paint();
   requestAnimationFrame(paint);
-  ensureData(weather.location);
+  ensureData(weather.location, force);
 
   if (!resizeBound) {
     resizeBound = true;

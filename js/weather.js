@@ -56,12 +56,13 @@ const DAILY_VARIABLES = [
   "wind_direction_10m_dominant",
 ];
 
-async function fetchJson(url, timeoutMs = 15000) {
+async function fetchJson(url, timeoutMs = 15000, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       signal: controller.signal,
+      cache: options.cache || "no-store",
       headers: {
         accept: "application/json",
       },
@@ -259,9 +260,10 @@ function buildNowcast(nowcast, currentTime) {
   }));
 }
 
-async function fetchWeatherData(query) {
+async function fetchWeatherData(query, force = false) {
   const profile = weightProfile(query.countryCode);
   const modelIds = MODELS.map((model) => model.apiId);
+  const timestamp = force ? `&_t=${Date.now()}` : "";
   const forecastParams = new URLSearchParams({
     latitude: String(query.latitude),
     longitude: String(query.longitude),
@@ -292,9 +294,9 @@ async function fetchWeatherData(query) {
   });
 
   const [forecastResult, airResult, nowcastResult] = await Promise.allSettled([
-    fetchJson(`https://api.open-meteo.com/v1/forecast?${forecastParams.toString()}`),
-    fetchJson(`https://air-quality-api.open-meteo.com/v1/air-quality?${airParams.toString()}`, 12000),
-    fetchJson(`https://api.open-meteo.com/v1/forecast?${nowcastParams.toString()}`, 12000),
+    fetchJson(`https://api.open-meteo.com/v1/forecast?${forecastParams.toString()}${timestamp}`),
+    fetchJson(`https://air-quality-api.open-meteo.com/v1/air-quality?${airParams.toString()}${timestamp}`, 12000),
+    fetchJson(`https://api.open-meteo.com/v1/forecast?${nowcastParams.toString()}${timestamp}`, 12000),
   ]);
 
   if (forecastResult.status === "rejected") {
@@ -741,7 +743,10 @@ export async function getWeather(query, { force = false } = {}) {
   const cached = cache.get(key);
   const now = Date.now();
 
-  if (!force && cached && cached.expiresAt > now) {
+  if (force) {
+    cache.delete(key);
+    inFlight.delete(key);
+  } else if (cached && cached.expiresAt > now) {
     return {
       ...cached.payload,
       meta: { ...cached.payload.meta, mode: "live" },
@@ -755,7 +760,7 @@ export async function getWeather(query, { force = false } = {}) {
     return { ...payload, cacheState: "fresh" };
   }
 
-  const job = fetchWeatherData(query)
+  const job = fetchWeatherData(query, force)
     .then((payload) => {
       cache.set(key, { payload, expiresAt: Date.now() + CACHE_TTL_MS });
       if (cache.size > 120) {

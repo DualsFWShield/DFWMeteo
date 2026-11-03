@@ -80,8 +80,9 @@ self.addEventListener("fetch", (event) => {
     url.hostname.includes("meteo.be") ||
     url.hostname.includes("corsproxy.io")
   ) {
+    const isForce = url.searchParams.has("_t");
     event.respondWith(
-      fetch(request)
+      fetch(request, isForce ? { cache: "no-store" } : undefined)
         .then((response) => {
           if (response && response.status === 200) {
             const copy = response.clone();

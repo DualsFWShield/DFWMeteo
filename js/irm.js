@@ -311,13 +311,18 @@ export async function loadIrmSnapshot(place) {
   };
 }
 
-export async function fetchIrmOfficial(place, lang = "en") {
+export async function fetchIrmOfficial(place, lang = "en", { force = false } = {}) {
   if (!isBelgianPlace(place)) return null;
+
+  if (force) {
+    irmSnapshotPromise = null;
+  }
 
   const lat = Number(place.latitude);
   const lon = Number(place.longitude);
   const key = irmApiKey();
-  const directUrl = `https://app.meteo.be/services/appv4/?s=getForecasts&k=${key}&lat=${lat.toFixed(6)}&long=${lon.toFixed(6)}`;
+  const timestamp = force ? `&_t=${Date.now()}` : "";
+  const directUrl = `https://app.meteo.be/services/appv4/?s=getForecasts&k=${key}&lat=${lat.toFixed(6)}&long=${lon.toFixed(6)}${timestamp}`;
 
   // 1. Direct fetch or CORS proxy for web
   try {
@@ -326,6 +331,7 @@ export async function fetchIrmOfficial(place, lang = "en") {
     const timer = setTimeout(() => controller.abort(), 6000);
     const response = await fetch(proxyUrl, {
       signal: controller.signal,
+      cache: force ? "no-store" : "default",
       headers: { accept: "application/json" },
     });
     clearTimeout(timer);

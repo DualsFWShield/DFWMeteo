@@ -64,8 +64,11 @@ import {
   advisoryIcon,
   agreementRing,
   brandMark,
+  dotMatrixText,
   modelGlyph,
   moonIcon,
+  nothingWeatherDotGlyph,
+  pixelScallopPath,
   uiIcon,
   weatherGlyph,
 } from "./icons.js";
@@ -193,7 +196,12 @@ function loadPreferences() {
       : reduceMotion
         ? "reduced"
         : "full";
-  state.theme = ["aurora", "pixel", "nothing"].includes(prefs.theme) ? prefs.theme : "aurora";
+  const urlTheme = new URLSearchParams(window.location.search).get("theme");
+  state.theme = ["aurora", "pixel", "nothing"].includes(urlTheme)
+    ? urlTheme
+    : ["aurora", "pixel", "nothing"].includes(prefs.theme)
+      ? prefs.theme
+      : "aurora";
   state.favorites = Array.isArray(readStorage(STORAGE.favorites, []))
     ? readStorage(STORAGE.favorites, []).filter(isValidPlace)
     : [];
@@ -217,7 +225,7 @@ function applyPreferences() {
   if (themeColor) {
     themeColor.setAttribute(
       "content",
-      state.theme === "pixel" ? "#eaf2fb" : state.theme === "nothing" ? "#000000" : "#070b14",
+      state.theme === "pixel" ? "#1d2554" : state.theme === "nothing" ? "#000000" : "#070b14",
     );
   }
 }
@@ -910,14 +918,6 @@ function headerMarkup() {
         )}">
           ${uiIcon("search", 16)}<span>${escapeHtml(tr("nav.searchShort"))}</span><kbd>${SHORTCUT}</kbd>
         </button>
-        <button class="unit-button" data-action="toggle-units" aria-label="${escapeHtml(
-          tr("nav.units"),
-        )}" title="${escapeHtml(
-          tr(state.units === "metric" ? "nav.switchToF" : "nav.switchToC"),
-        )}">${temperatureUnit()}</button>
-        <button class="icon-button" data-action="open-data" aria-label="${escapeHtml(
-          tr("nav.data"),
-        )}" title="${escapeHtml(tr("nav.data"))}">${uiIcon("database", 18)}</button>
         <button class="icon-button" data-action="settings" aria-label="${escapeHtml(
           tr("nav.settings"),
         )}" title="${escapeHtml(tr("nav.settings"))}">${uiIcon("settings", 18)}</button>
@@ -992,6 +992,95 @@ function heroMarkup(weather) {
   const starMarkup = starsMarkup(weather);
   const currentPrecip = formatPercent(weather.current.precipitationProbability, state.locale);
   const local = localTimeParts(weather);
+
+  if (state.theme === "pixel") {
+    return `<section class="hero hero--pixel hero--${tone} ${isDay ? "is-day" : "is-night"}" aria-labelledby="hero-city">
+      <div class="hero-atmosphere" aria-hidden="true">
+        ${starMarkup}
+        <span class="pixel-sparkle pixel-sparkle--1"></span>
+        <span class="pixel-sparkle pixel-sparkle--2"></span>
+        <span class="pixel-sparkle pixel-sparkle--3"></span>
+        ${particlesMarkup(group)}
+      </div>
+      <div class="hero-inner hero-inner--pixel">
+        <div class="pixel-hero-top">
+          <h1 id="hero-city" class="pixel-city-title">${escapeHtml(displayName(state.place))}</h1>
+          <button class="favorite-button ${isFavorite(state.place) ? "is-favorite" : ""}" data-action="toggle-favorite" aria-label="${escapeHtml(
+            isFavorite(state.place) ? tr("hero.removeFavorite") : tr("hero.addFavorite"),
+          )}">${uiIcon("star", 18)}</button>
+        </div>
+        <p class="pixel-condition">${escapeHtml(currentCondition(weather))}</p>
+        <div class="pixel-temp-row">
+          <span class="pixel-temp-number">${escapeHtml(
+            formatTempValue(weather.current.temp, state.units, state.locale),
+          )}</span>
+          <span class="pixel-temp-glyph">${weatherGlyph(
+            weather.current.code,
+            isDay,
+            "lg",
+            "",
+            currentCondition(weather),
+          )}</span>
+        </div>
+        <p class="pixel-feels">${escapeHtml(
+          `${tr("common.feels")} ${formatTemp(weather.current.apparent, state.units, state.locale)}`,
+        )}</p>
+        <p class="pixel-highlow">${escapeHtml(
+          `${tr("common.high")} ${formatTemp(weather.current.high, state.units, state.locale)} · ${tr("common.low")} ${formatTemp(weather.current.low, state.units, state.locale)}`,
+        )}</p>
+        <div class="pixel-hero-pills">
+          <button class="model-pill" data-action="scroll-models">
+            ${modelGlyph(14)}
+            <span>${escapeHtml(tr("hero.consensus", { n: sourceCount(weather) }))}</span>
+            <i>${confidence}%</i>
+          </button>
+          <span class="updated-pill ${state.refreshing ? "is-updating" : ""}" data-updated>${escapeHtml(
+            state.refreshing ? tr("common.updating") : updatedLabel(weather),
+          )}</span>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  if (state.theme === "nothing") {
+    const tempStr = `${formatTempValue(weather.current.temp, state.units, state.locale)}${temperatureUnit()}`;
+    return `<section class="hero hero--nothing" aria-labelledby="hero-city">
+      <div class="hero-inner hero-inner--nothing">
+        <div class="nothing-topbar-row">
+          <span class="nothing-live-tag"><i class="nothing-red-dot"></i>${local.hour}:${local.minute}</span>
+          <h1 id="hero-city" class="nothing-city-title">${escapeHtml(displayName(state.place))}</h1>
+          <button class="favorite-button ${isFavorite(state.place) ? "is-favorite" : ""}" data-action="toggle-favorite" aria-label="${escapeHtml(
+            isFavorite(state.place) ? tr("hero.removeFavorite") : tr("hero.addFavorite"),
+          )}">${uiIcon("star", 17)}</button>
+        </div>
+        <div class="nothing-summary-split">
+          <div class="nothing-temp-matrix">
+            ${dotMatrixText(tempStr, { dotSize: 4.2, gap: 2, color: "#f5f5f5" })}
+          </div>
+          <div class="nothing-cond-block">
+            <p class="nothing-cond-label">${escapeHtml(currentCondition(weather))}</p>
+            <p class="nothing-minmax">
+              <span class="nothing-min">↓ ${escapeHtml(formatTemp(weather.current.low, state.units, state.locale))}</span>
+              <span class="nothing-max"><i>↑</i> ${escapeHtml(formatTemp(weather.current.high, state.units, state.locale))}</span>
+            </p>
+          </div>
+        </div>
+        <div class="nothing-center-stage">
+          ${nothingWeatherDotGlyph(weather.current.code, isDay, 196, currentCondition(weather))}
+        </div>
+        <div class="nothing-hero-foot">
+          <button class="model-pill" data-action="scroll-models">
+            ${modelGlyph(14)}
+            <span>${escapeHtml(tr("hero.consensus", { n: sourceCount(weather) }))}</span>
+            <i>${confidence}%</i>
+          </button>
+          <span class="updated-pill" data-updated>${escapeHtml(
+            state.refreshing ? tr("common.updating") : updatedLabel(weather),
+          )}</span>
+        </div>
+      </div>
+    </section>`;
+  }
 
   return `<section class="hero hero--${tone} ${isDay ? "is-day" : "is-night"}" aria-labelledby="hero-city">
     <div class="hero-atmosphere" aria-hidden="true">
@@ -1474,13 +1563,45 @@ function modelsMarkup(weather) {
   </section>`;
 }
 
+function nothingHourlyCurveSvg(hours) {
+  const slice = hours.slice(0, 12);
+  if (slice.length < 2) return "";
+  const temps = slice.map((h) => h.temp);
+  const min = Math.min(...temps);
+  const max = Math.max(...temps);
+  const range = Math.max(2, max - min);
+  const w = 660;
+  const h = 58;
+  const stepX = w / slice.length;
+  const pts = slice.map((item, i) => ({
+    x: stepX * i + stepX / 2,
+    y: 12 + ((max - item.temp) / range) * 30,
+  }));
+  const d = pts
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .join(" ");
+  const stems = pts
+    .map(
+      (p) =>
+        `<line x1="${p.x.toFixed(1)}" y1="${(p.y + 4).toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${h}" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>`,
+    )
+    .join("");
+  return `<svg class="nothing-hour-curve" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    ${stems}
+    <path d="${d}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
 function hourlyMarkup(weather) {
   const hours = weather.hourly.slice(0, 24);
   const isCompare = state.hourlyView === "compare";
   const metrics = ["temp", "rain", "wind"];
+  const isPixel = state.theme === "pixel";
+  const isNothing = state.theme === "nothing";
+
   return `<section class="card hourly-card" aria-labelledby="hourly-title">
     <div class="card-head hourly-head">
-      <div><p class="eyebrow">${escapeHtml(tr("hourly.eyebrow"))}</p><h2 id="hourly-title">${escapeHtml(
+      <div><p class="eyebrow">${uiIcon("clock", 13)} ${escapeHtml(tr("hourly.eyebrow"))}</p><h2 id="hourly-title">${escapeHtml(
         tr("hourly.title"),
       )}</h2></div>
       <div class="segmented" role="group" aria-label="${escapeHtml(tr("hourly.title"))}">
@@ -1525,48 +1646,109 @@ function hourlyMarkup(weather) {
           <div class="chart-footnote"><span>${escapeHtml(tr("hourly.legend"))}</span><span>${escapeHtml(
             tr("hourly.chartHint"),
           )}</span></div>`
-        : `<div class="hour-rail" role="list" aria-label="${escapeHtml(tr("hourly.eyebrow"))}">
-            ${hours
-              .map((hour, index) => {
-                const label = index === 0 ? tr("common.now") : formatHour(hour.time);
-                const glyph = weatherGlyph(
-                  hour.code,
-                  hour.isDay,
-                  "sm",
-                  "",
-                  tr(`wx.${weatherKey(hour.code)}`),
-                );
-                return `<div class="hour-cell ${index === 0 ? "is-now" : ""}" role="listitem" aria-label="${escapeHtml(
-                  `${label}, ${formatTemp(hour.temp, state.units, state.locale)}, ${formatPercent(
-                    hour.precipitationProbability,
-                    state.locale,
-                  )} ${tr("common.chance")}`,
-                )}">
-                  <span class="hour-label">${escapeHtml(label)}</span>
-                  <span class="hour-glyph">${glyph}</span>
-                  <strong class="hour-temp">${escapeHtml(
-                    formatTemp(hour.temp, state.units, state.locale),
-                  )}</strong>
-                  <span class="hour-rain ${hour.precipitationProbability >= 45 ? "is-likely" : ""}">${uiIcon(
-                    "droplet",
-                    10,
-                  )}${Math.round(hour.precipitationProbability)}%</span>
-                  <span class="hour-bar"><i style="height:${clamp(
-                    hour.precipitationProbability,
-                    3,
-                    100,
-                  )}%"></i></span>
-                </div>`;
-              })
-              .join("")}
-          </div>
-          <div class="hour-legend"><span>${uiIcon("droplet", 12)} ${escapeHtml(
-            tr("hourly.rainUnit"),
-          )}</span><span>${uiIcon("wind", 12)} ${escapeHtml(
-            formatWind(weather.current.windSpeed, state.units, state.locale),
-          )}</span><span>${uiIcon("activity", 12)} ${escapeHtml(
-            tr("hourly.agreement"),
-          )} ${weather.current.agreement}%</span></div>`
+        : isPixel
+          ? `<div class="hour-rail hour-rail--pixel" role="list" aria-label="${escapeHtml(tr("hourly.eyebrow"))}">
+              ${hours
+                .map((hour, index) => {
+                  const label = index === 0 ? tr("common.now") : formatHour(hour.time);
+                  const glyph = weatherGlyph(
+                    hour.code,
+                    hour.isDay,
+                    "sm",
+                    "",
+                    tr(`wx.${weatherKey(hour.code)}`),
+                  );
+                  return `<div class="hour-cell hour-cell--pixel ${index === 0 ? "is-now" : ""}" role="listitem">
+                    <strong class="hour-temp">${escapeHtml(
+                      formatTemp(hour.temp, state.units, state.locale),
+                    )}</strong>
+                    <span class="hour-glyph">${glyph}</span>
+                    ${
+                      hour.precipitationProbability >= 20
+                        ? `<span class="hour-rain is-likely">${Math.round(hour.precipitationProbability)}%</span>`
+                        : `<span class="hour-rain">&nbsp;</span>`
+                    }
+                    <span class="hour-label">${escapeHtml(label)}</span>
+                  </div>`;
+                })
+                .join("")}
+            </div>`
+          : isNothing
+            ? `<div class="nothing-hourly-wrap">
+                <div class="hour-rail hour-rail--nothing" role="list" aria-label="${escapeHtml(tr("hourly.eyebrow"))}">
+                  ${hours
+                    .slice(0, 12)
+                    .map((hour, index) => {
+                      const label =
+                        index === 0
+                          ? tr("common.now").toUpperCase()
+                          : formatHour(hour.time).slice(0, 2);
+                      const glyph = weatherGlyph(
+                        hour.code,
+                        hour.isDay,
+                        "xs",
+                        "",
+                        tr(`wx.${weatherKey(hour.code)}`),
+                      );
+                      return `<div class="hour-cell hour-cell--nothing ${index === 0 ? "is-now" : ""}" role="listitem">
+                        <strong class="hour-temp">${escapeHtml(
+                          formatTemp(hour.temp, state.units, state.locale),
+                        )}</strong>
+                        <span class="hour-glyph">${glyph}</span>
+                        <span class="hour-rain">${
+                          hour.precipitationProbability >= 25
+                            ? `${Math.round(hour.precipitationProbability)}%`
+                            : "&nbsp;"
+                        }</span>
+                        <span class="hour-label">${escapeHtml(label)}</span>
+                      </div>`;
+                    })
+                    .join("")}
+                </div>
+                ${nothingHourlyCurveSvg(hours)}
+              </div>`
+            : `<div class="hour-rail" role="list" aria-label="${escapeHtml(tr("hourly.eyebrow"))}">
+                ${hours
+                  .map((hour, index) => {
+                    const label = index === 0 ? tr("common.now") : formatHour(hour.time);
+                    const glyph = weatherGlyph(
+                      hour.code,
+                      hour.isDay,
+                      "sm",
+                      "",
+                      tr(`wx.${weatherKey(hour.code)}`),
+                    );
+                    return `<div class="hour-cell ${index === 0 ? "is-now" : ""}" role="listitem" aria-label="${escapeHtml(
+                      `${label}, ${formatTemp(hour.temp, state.units, state.locale)}, ${formatPercent(
+                        hour.precipitationProbability,
+                        state.locale,
+                      )} ${tr("common.chance")}`,
+                    )}">
+                      <span class="hour-label">${escapeHtml(label)}</span>
+                      <span class="hour-glyph">${glyph}</span>
+                      <strong class="hour-temp">${escapeHtml(
+                        formatTemp(hour.temp, state.units, state.locale),
+                      )}</strong>
+                      <span class="hour-rain ${hour.precipitationProbability >= 45 ? "is-likely" : ""}">${uiIcon(
+                        "droplet",
+                        10,
+                      )}${Math.round(hour.precipitationProbability)}%</span>
+                      <span class="hour-bar"><i style="height:${clamp(
+                        hour.precipitationProbability,
+                        3,
+                        100,
+                      )}%"></i></span>
+                    </div>`;
+                  })
+                  .join("")}
+              </div>
+              <div class="hour-legend"><span>${uiIcon("droplet", 12)} ${escapeHtml(
+                tr("hourly.rainUnit"),
+              )}</span><span>${uiIcon("wind", 12)} ${escapeHtml(
+                formatWind(weather.current.windSpeed, state.units, state.locale),
+              )}</span><span>${uiIcon("activity", 12)} ${escapeHtml(
+                tr("hourly.agreement"),
+              )} ${weather.current.agreement}%</span></div>`
     }
   </section>`;
 }
@@ -1576,6 +1758,91 @@ function dailyMarkup(weather) {
   const low = Math.min(...days.map((day) => day.min));
   const high = Math.max(...days.map((day) => day.max));
   const range = Math.max(1, high - low);
+
+  if (state.theme === "nothing") {
+    return `<section class="card daily-card daily-card--nothing" aria-labelledby="daily-title">
+      <div class="card-head">
+        <div><p class="eyebrow">${escapeHtml(tr("daily.eyebrow"))}</p><h2 id="daily-title">${escapeHtml(
+          tr("daily.title"),
+        )}</h2></div>
+      </div>
+      <div class="nothing-day-list">
+        ${days
+          .map((day, index) => {
+            const name = dayName(day.date, index).toUpperCase();
+            const start = clamp(((day.min - low) / range) * 100, 0, 92);
+            const width = clamp(((day.max - day.min) / range) * 100, 8, 100 - start);
+            const markerPos = clamp(start + width * 0.72, 4, 96);
+            return `<button class="nothing-day-row ${index === 0 ? "is-today" : ""}" data-action="select-day" data-date="${escapeHtml(
+              day.date,
+            )}">
+              <span class="nothing-day-name">${escapeHtml(name)}</span>
+              <span class="nothing-day-wx">
+                ${weatherGlyph(day.code, true, "xs", "", dayCondition(day))}
+                ${
+                  day.precipitationProbability >= 20
+                    ? `<small>${Math.round(day.precipitationProbability)}%</small>`
+                    : `<small></small>`
+                }
+              </span>
+              <span class="nothing-day-min">${escapeHtml(
+                formatTemp(day.min, state.units, state.locale),
+              )}</span>
+              <span class="nothing-day-range">
+                <i style="left:${start.toFixed(1)}%;width:${width.toFixed(1)}%"></i>
+                ${index === 0 ? `<b class="nothing-day-tick" style="left:${markerPos.toFixed(1)}%"></b>` : ""}
+              </span>
+              <span class="nothing-day-max">${escapeHtml(
+                formatTemp(day.max, state.units, state.locale),
+              )}</span>
+            </button>`;
+          })
+          .join("")}
+      </div>
+      <div class="nothing-day-footer">⌄ ${escapeHtml(tr("daily.title").toUpperCase())}</div>
+    </section>`;
+  }
+
+  if (state.theme === "pixel") {
+    return `<section class="card daily-card daily-card--pixel" aria-labelledby="daily-title">
+      <div class="card-head">
+        <div><p class="eyebrow">${uiIcon("calendar", 13)} ${escapeHtml(tr("daily.title"))}</p><h2 id="daily-title">${escapeHtml(
+          tr("daily.title"),
+        )}</h2></div>
+      </div>
+      <div class="day-rail day-rail--pixel">
+        ${days
+          .map((day, index) => {
+            const name = index === 0 ? tr("common.today") : formatWeekdayShort(day.date, state.locale);
+            return `<button class="day-card day-card--pixel ${index === 0 ? "is-today" : ""}" data-action="select-day" data-date="${escapeHtml(
+              day.date,
+            )}">
+              <span class="pixel-day-high">${escapeHtml(
+                formatTemp(day.max, state.units, state.locale),
+              )}</span>
+              <span class="pixel-day-low">${escapeHtml(
+                formatTemp(day.min, state.units, state.locale),
+              )}</span>
+              <span class="day-glyph">${weatherGlyph(
+                day.code,
+                true,
+                "sm",
+                "",
+                dayCondition(day),
+              )}</span>
+              <span class="day-rain ${day.precipitationProbability >= 30 ? "is-likely" : ""}">${
+                day.precipitationProbability >= 20
+                  ? `${Math.round(day.precipitationProbability)}%`
+                  : "&nbsp;"
+              }</span>
+              <span class="day-name">${escapeHtml(name)}</span>
+            </button>`;
+          })
+          .join("")}
+      </div>
+    </section>`;
+  }
+
   return `<section class="card daily-card" aria-labelledby="daily-title">
     <div class="card-head">
       <div><p class="eyebrow">${escapeHtml(tr("daily.eyebrow"))}</p><h2 id="daily-title">${escapeHtml(
@@ -1622,7 +1889,312 @@ function dailyMarkup(weather) {
   </section>`;
 }
 
+function pixelDetailsMarkup(weather) {
+  const today = weather.daily[0];
+  const uv = Math.round(weather.current.uvIndex ?? 0);
+  const uvCat = tr(`details.uv${capitalize(uvCategory(weather.current.uvIndex))}`);
+  const visibility = weather.current.visibility;
+  const visVal = formatVisibility(visibility, state.units, state.locale);
+  const [visNum, visUnit] = visVal.split(/\s+/);
+  const windVal = formatWindValue(weather.current.windSpeed, state.units, state.locale);
+  const windDir = compassPoint(weather.current.windDirection, state.locale);
+  const windRot = Number(weather.current.windDirection) || 0;
+  const precipVal = formatPrecip(today?.precipitationSum ?? 0, state.units, state.locale);
+  const [precipNum, precipUnit] = precipVal.split(/\s+/);
+  const pressureNum =
+    state.units === "imperial"
+      ? localeNumber(Number(weather.current.pressure) * 0.02953, 2)
+      : localeNumber(weather.current.pressure, 1);
+  const pressureUnit = state.units === "imperial" ? "inHg" : "mbar";
+  const pressurePct = clamp(((Number(weather.current.pressure) || 1013) - 975) / 65, 0.08, 0.95);
+  const scallopD = pixelScallopPath(100, 100, 96, 86, 12);
+  const visScallopD = pixelScallopPath(100, 100, 82, 75, 18);
+  const uvColors = ["#4ade80", "#a3e635", "#facc15", "#fb923c", "#f87171", "#c084fc"];
+  const activeUvDot = clamp(Math.floor(uv / 2), 0, 5);
+  const aqi = weather.airQuality?.aqi ?? 18;
+  const aqiPct = clamp((aqi / 100) * 100, 4, 96);
+  const aqiLabel = weather.airQuality
+    ? tr(`air.level.${aqiKey(weather.airQuality.level)}`)
+    : tr("air.level.good");
+
+  return `<section class="card details-card details-card--pixel" aria-labelledby="details-title">
+    <div class="pixel-widgets-grid">
+      <!-- Precipitation Square Card -->
+      <article class="pixel-widget pixel-widget--square">
+        <div class="pixel-widget-head">${uiIcon("umbrella", 16)}<span>${escapeHtml(tr("details.precip"))}</span></div>
+        <div class="pixel-precip-big"><strong>${escapeHtml(precipNum)}</strong> <span>${escapeHtml(precipUnit || "mm")}</span></div>
+        <p class="pixel-widget-foot">${escapeHtml(
+          (today?.precipitationSum ?? 0) > 0.1
+            ? `${tr("details.precipChance")} ${formatPercent(today?.precipitationProbability ?? 0, state.locale)}`
+            : tr("nowcast.dry"),
+        )}</p>
+      </article>
+
+      <!-- Wind Circle Widget -->
+      <article class="pixel-widget pixel-widget--circle">
+        <svg class="pixel-bg-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <g transform="rotate(${windRot.toFixed(1)} 100 100)">
+            <path d="M100 172 C78 130, 56 86, 62 56 C67 36, 133 36, 138 56 C144 86, 122 130, 100 172 Z" fill="rgba(255,255,255,0.11)"/>
+          </g>
+        </svg>
+        <div class="pixel-circle-content">
+          <div class="pixel-widget-head pixel-widget-head--center">${uiIcon("wind", 16)}<span>${escapeHtml(tr("details.wind"))}</span></div>
+          <div class="pixel-circle-main"><strong>${escapeHtml(windVal)}</strong> <span>${escapeHtml(windUnit())}</span></div>
+          <p class="pixel-circle-sub">${escapeHtml(`${tr("details.windDir")} ${windDir}`)}</p>
+        </div>
+      </article>
+
+      <!-- Sunrise & Sunset Square Card -->
+      <article class="pixel-widget pixel-widget--square pixel-widget--sun">
+        <div class="pixel-widget-head">${uiIcon("sunrise", 16)}<span>${escapeHtml(tr("sun.title"))}</span></div>
+        <div class="pixel-sun-graphic">
+          <svg viewBox="0 0 200 76" aria-hidden="true">
+            <path d="M0 54 Q100 -8 200 54 L200 76 L0 76 Z" fill="rgba(255,255,255,0.12)"/>
+            <path d="M52 54 A48 48 0 0 1 148 54 Z" fill="#ffffff"/>
+            <line x1="0" y1="54" x2="200" y2="54" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pixel-sun-times">
+          <span>${uiIcon("sun", 14)} ${escapeHtml(formatHour(weather.sun.sunrise))}</span>
+          <span>${uiIcon("sunset", 14)} ${escapeHtml(formatHour(weather.sun.sunset))}</span>
+        </div>
+      </article>
+
+      <!-- UV Index Scallop Cookie Widget -->
+      <article class="pixel-widget pixel-widget--scallop">
+        <svg class="pixel-bg-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="${scallopD}" fill="#121318"/>
+        </svg>
+        <div class="pixel-circle-content">
+          <div class="pixel-widget-head pixel-widget-head--center">${uiIcon("sun", 16)}<span>${escapeHtml(tr("details.uv"))}</span></div>
+          <div class="pixel-circle-main"><strong>${uv}</strong></div>
+          <p class="pixel-circle-sub">${escapeHtml(uvCat)}</p>
+          <div class="pixel-uv-dots" aria-hidden="true">
+            ${uvColors
+              .map(
+                (col, idx) =>
+                  `<span class="${idx === activeUvDot ? "is-active" : ""}" style="--dot-color:${col}"></span>`,
+              )
+              .join("")}
+          </div>
+        </div>
+      </article>
+
+      <!-- Air Quality Square Card -->
+      <article class="pixel-widget pixel-widget--square">
+        <div class="pixel-widget-head">${uiIcon("waves", 16)}<span>${escapeHtml(tr("air.title"))}</span></div>
+        <div class="pixel-aqi-num">${Math.round(aqi)}</div>
+        <div class="pixel-aqi-Spectrum">
+          <div class="pixel-aqi-bar"><span style="left:${aqiPct.toFixed(1)}%"></span></div>
+          <p class="pixel-widget-foot">${escapeHtml(aqiLabel)}</p>
+        </div>
+      </article>
+
+      <!-- Visibility Circle Widget -->
+      <article class="pixel-widget pixel-widget--circle">
+        <svg class="pixel-bg-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="${visScallopD}" fill="#8a8d93" opacity="0.88"/>
+        </svg>
+        <div class="pixel-circle-content pixel-circle-content--vis">
+          <div class="pixel-widget-head pixel-widget-head--center">${uiIcon("eye", 16)}<span>${escapeHtml(tr("details.visibility"))}</span></div>
+          <div class="pixel-circle-main"><strong>${escapeHtml(visNum)}</strong> <span>${escapeHtml(visUnit || "km")}</span></div>
+        </div>
+      </article>
+
+      <!-- Humidity Square Card with Wave Fill -->
+      <article class="pixel-widget pixel-widget--square pixel-widget--humidity">
+        <div class="pixel-widget-head">${uiIcon("droplet", 16)}<span>${escapeHtml(tr("details.humidity"))}</span></div>
+        <div class="pixel-humidity-num">${Math.round(weather.current.humidity)}%</div>
+        <svg class="pixel-humidity-wave" viewBox="0 0 200 95" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 18 Q16 10 33 18 T66 18 T100 18 T133 18 T166 18 T200 18 L200 95 L0 95 Z" fill="#8a8d93" opacity="0.88"/>
+        </svg>
+        <div class="pixel-dew-row">
+          <span class="pixel-dew-badge">${escapeHtml(formatTemp(weather.current.dewPoint, state.units, state.locale))}</span>
+          <span class="pixel-dew-label">${escapeHtml(tr("details.dewPoint"))}</span>
+        </div>
+      </article>
+
+      <!-- Pressure Circle Gauge -->
+      <article class="pixel-widget pixel-widget--circle">
+        <svg class="pixel-bg-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M 38 158 A 84 84 0 1 1 162 158" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="12" stroke-linecap="round"/>
+          <path d="M 38 158 A 84 84 0 1 1 162 158" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${(100 - pressurePct * 100).toFixed(1)}"/>
+        </svg>
+        <div class="pixel-circle-content">
+          <div class="pixel-widget-head pixel-widget-head--center">${uiIcon("gauge", 16)}<span>${escapeHtml(tr("details.pressure"))}</span></div>
+          <div class="pixel-circle-main pixel-circle-main--pressure"><strong>${escapeHtml(pressureNum)}</strong></div>
+          <p class="pixel-circle-sub">${escapeHtml(pressureUnit)}</p>
+        </div>
+      </article>
+    </div>
+  </section>`;
+}
+
+function nothingDetailsMarkup(weather) {
+  const uv = Math.round(weather.current.uvIndex ?? 0);
+  const uvCat = tr(`details.uv${capitalize(uvCategory(weather.current.uvIndex))}`);
+  const visibility = weather.current.visibility;
+  const visNum = localeNumber(
+    state.units === "imperial" ? visibility * 0.621371 : visibility,
+    1,
+  );
+  const visLabel =
+    visibility > 10 ? tr("details.visibilityGood").split("/")[0].trim() : tr("details.visibilityModerate");
+  const windVal = formatWind(weather.current.windSpeed, state.units, state.locale).toUpperCase();
+  const windDir = compassPoint(weather.current.windDirection, state.locale);
+  const windRot = Number(weather.current.windDirection) || 0;
+  const humidity = Math.round(weather.current.humidity);
+  const cylY = (78 - (humidity / 100) * 48).toFixed(1);
+  const pressureVal = localeNumber(weather.current.pressure, 1);
+  const pressurePct = clamp(((Number(weather.current.pressure) || 1013) - 975) / 65, 0, 1);
+  const pressureAngle = -140 + pressurePct * 280;
+  const aqi = weather.airQuality?.aqi ?? 22;
+  const aqiLabel = weather.airQuality
+    ? tr(`air.level.${aqiKey(weather.airQuality.level)}`)
+    : tr("air.level.good");
+  const sunrise = formatHour(weather.sun.sunrise);
+  const daylight = formatDaylight(weather.sun.daylightSeconds, state.locale);
+
+  // Generate 8x5 dot matrix for Air Quality
+  const aqiCols = 8;
+  const aqiRows = 5;
+  const activeCols = clamp(Math.ceil((aqi / 100) * aqiCols), 1, aqiCols);
+  const aqiDots = [];
+  for (let r = 0; r < aqiRows; r += 1) {
+    for (let c = 0; c < aqiCols; c += 1) {
+      const active = c < activeCols;
+      aqiDots.push(
+        `<circle cx="${16 + c * 21}" cy="${16 + r * 16}" r="${active ? 2.5 : 1.7}" fill="${
+          active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)"
+        }"/>`,
+      );
+    }
+  }
+
+  const pressureTicks = Array.from({ length: 48 }, (_, i) => {
+    const a = (i * 360) / 48;
+    return `<line x1="100" y1="8" x2="100" y2="14" transform="rotate(${a} 100 100)" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`;
+  }).join("");
+
+  return `<section class="card details-card details-card--nothing" aria-labelledby="details-title">
+    <div class="nothing-widgets-grid">
+      <!-- White Circle: Feels Like (Sensación Corporal) -->
+      <article class="nothing-tile nothing-tile--white-circle">
+        <span class="nothing-circle-kicker">${escapeHtml(tr("common.feels").toUpperCase())}</span>
+        <div class="nothing-circle-matrix">
+          ${dotMatrixText(`${formatTempValue(weather.current.apparent, state.units, state.locale)}°`, {
+            dotSize: 4,
+            gap: 1.8,
+            color: "#0a0a0a",
+          })}
+        </div>
+      </article>
+
+      <!-- UV Index Wireframe 3D Domes -->
+      <article class="nothing-tile">
+        <div class="nothing-tile-head">
+          <span class="nothing-tile-title">${escapeHtml(tr("details.uv"))}</span>
+          <span class="nothing-tile-sub">${String(uv).padStart(2, "0")} · ${escapeHtml(uvCat)}</span>
+        </div>
+        <svg class="nothing-wire-svg" viewBox="0 0 180 110" aria-hidden="true">
+          <ellipse cx="90" cy="86" rx="44" ry="12" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+          <ellipse cx="90" cy="76" rx="44" ry="12" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+          <ellipse cx="90" cy="66" rx="44" ry="12" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+          <path d="M46 86 A44 42 0 0 1 134 86" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+        </svg>
+      </article>
+
+      <!-- Air Quality Dot Matrix Tile -->
+      <article class="nothing-tile">
+        <div class="nothing-tile-head">
+          <span class="nothing-tile-title">${escapeHtml(tr("air.title"))}</span>
+          <span class="nothing-tile-sub">${Math.round(aqi)} · ${escapeHtml(aqiLabel)}</span>
+        </div>
+        <svg class="nothing-wire-svg" viewBox="0 0 180 92" aria-hidden="true">
+          ${aqiDots.join("")}
+        </svg>
+      </article>
+
+      <!-- Visibility Radar Sector Tile -->
+      <article class="nothing-tile">
+        <div class="nothing-tile-head">
+          <span class="nothing-tile-title">${escapeHtml(tr("details.visibility"))}</span>
+          <span class="nothing-tile-sub">${escapeHtml(visNum)} · ${escapeHtml(visLabel)}</span>
+        </div>
+        <svg class="nothing-wire-svg" viewBox="0 0 180 100" aria-hidden="true">
+          <line x1="20" y1="68" x2="156" y2="28" stroke="#f5f5f5" stroke-width="1.2"/>
+          <line x1="20" y1="68" x2="156" y2="82" stroke="#f5f5f5" stroke-width="1.2"/>
+          <path d="M 118 39 A 95 95 0 0 1 118 78" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+          <path d="M 142 32 A 122 122 0 0 1 142 80" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/>
+        </svg>
+      </article>
+
+      <!-- Wind Speed Circle with Red Pointer -->
+      <article class="nothing-tile">
+        <div class="nothing-tile-head">
+          <span class="nothing-tile-title">${escapeHtml(tr("details.wind"))}</span>
+          <span class="nothing-tile-sub">${escapeHtml(windVal)}</span>
+        </div>
+        <svg class="nothing-wire-svg" viewBox="0 0 180 112" aria-hidden="true">
+          <circle cx="90" cy="54" r="36" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/>
+          <g transform="rotate(${windRot.toFixed(1)} 90 54)">
+            <line x1="90" y1="54" x2="90" y2="18" stroke="#ff281e" stroke-width="1.8"/>
+            <circle cx="90" cy="18" r="2.6" fill="#ff281e"/>
+          </g>
+          <text x="90" y="104" text-anchor="middle" fill="#ff281e" font-size="9" font-family="monospace">${escapeHtml(windDir)}</text>
+        </svg>
+      </article>
+
+      <!-- Humidity 3D Wireframe Cylinder -->
+      <article class="nothing-tile">
+        <div class="nothing-tile-head">
+          <span class="nothing-tile-title">${escapeHtml(tr("details.humidity").toUpperCase())}</span>
+          <span class="nothing-tile-sub">${humidity}%</span>
+        </div>
+        <svg class="nothing-wire-svg" viewBox="0 0 180 112" aria-hidden="true">
+          <ellipse cx="90" cy="30" rx="38" ry="10" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
+          <line x1="52" y1="30" x2="52" y2="82" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
+          <line x1="128" y1="30" x2="128" y2="82" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
+          <ellipse cx="90" cy="${cylY}" rx="38" ry="10" fill="rgba(255,255,255,0.06)" stroke="#ffffff" stroke-width="1.2"/>
+          <ellipse cx="90" cy="82" rx="38" ry="10" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/>
+        </svg>
+      </article>
+
+      <!-- Dark Circle: Pressure Dot-Matrix Dial -->
+      <article class="nothing-tile nothing-tile--dark-circle">
+        <svg class="nothing-dial-svg" viewBox="0 0 200 200" aria-hidden="true">
+          ${pressureTicks}
+          <g transform="rotate(${pressureAngle.toFixed(1)} 100 100)">
+            <circle cx="100" cy="24" r="6" fill="#ffffff"/>
+          </g>
+        </svg>
+        <div class="nothing-dial-center">
+          ${dotMatrixText(pressureVal, { dotSize: 2.5, gap: 1.2, color: "#ffffff" })}
+          <small>mbar</small>
+        </div>
+      </article>
+
+      <!-- Sunrise & Sunset Sine Wave Tile -->
+      <article class="nothing-tile">
+        <div class="nothing-tile-head">
+          <span class="nothing-tile-title">${escapeHtml(tr("sun.title"))}</span>
+          <span class="nothing-tile-sub">${escapeHtml(daylight)}</span>
+        </div>
+        <svg class="nothing-wire-svg" viewBox="0 0 180 108" aria-hidden="true">
+          <line x1="12" y1="60" x2="168" y2="60" stroke="rgba(255,255,255,0.22)" stroke-dasharray="3 3" stroke-width="1"/>
+          <path d="M 12 82 C 48 82, 62 28, 96 28 C 130 28, 144 82, 168 82" fill="none" stroke="#ffffff" stroke-width="1.4"/>
+          <circle cx="96" cy="28" r="4" fill="#ff281e"/>
+          <text x="16" y="98" fill="rgba(255,255,255,0.55)" font-size="9" font-family="monospace">${escapeHtml(sunrise)}</text>
+        </svg>
+      </article>
+    </div>
+  </section>`;
+}
+
 function detailsMarkup(weather) {
+  if (state.theme === "pixel") return pixelDetailsMarkup(weather);
+  if (state.theme === "nothing") return nothingDetailsMarkup(weather);
+
   const today = weather.daily[0];
   const trend = pressureTrend(weather.hourly);
   const uv = weather.current.uvIndex;
@@ -1933,52 +2505,14 @@ function nowcastMarkup(weather) {
 }
 
 function footerMarkup() {
-  return `<footer class="site-footer">
-    <div class="footer-top">
-      <div class="footer-brand">
-        ${brandWordmark()}
-        <p>${escapeHtml(tr("footer.tagline"))}</p>
-        <small>${escapeHtml(tr("footer.description"))}</small>
-      </div>
-      <div class="footer-column">
-        <span>${escapeHtml(tr("footer.data"))}</span>
-        <a href="https://open-meteo.com/" target="_blank" rel="noreferrer noopener">${escapeHtml(
-          tr("footer.openMeteo"),
-        )} ${uiIcon("external", 11)}</a>
-        <p>${escapeHtml(tr("footer.models"))}</p>
-        <p>${escapeHtml(tr("footer.officialSource"))}</p>
-      </div>
-      <div class="footer-column">
-        <span>DFWMeteo</span>
-        <button data-action="open-data">${escapeHtml(tr("footer.dataExplorer"))}</button>
-        <button data-action="method">${escapeHtml(tr("footer.method"))}</button>
-        <button data-action="settings">${escapeHtml(tr("footer.settings"))}</button>
-        <button data-action="copy-link">${uiIcon("copy", 11)} ${escapeHtml(
-          tr("footer.share"),
-        )}</button>
-      </div>
-      <div class="footer-column footer-column--language">
-        <span>${escapeHtml(tr("footer.language"))}</span>
-        <div class="footer-languages">
-          ${["en", "fr", "nl"]
-            .map(
-              (locale) =>
-                `<button class="${state.locale === locale ? "is-active" : ""}" data-action="set-locale" data-locale="${locale}" aria-pressed="${
-                  state.locale === locale
-                }">${locale.toUpperCase()}</button>`,
-            )
-            .join("")}
-        </div>
-        <p>${escapeHtml(tr("footer.made"))}</p>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>${escapeHtml(tr("footer.license"))}</span>
-      <span>${escapeHtml(tr("footer.legal"))}</span>
-      <a href="https://www.meteo.be/" target="_blank" rel="noreferrer noopener">${escapeHtml(
-        tr("footer.official"),
-      )}</a>
-    </div>
+  return `<footer class="page-end">
+    <button class="button button--ghost page-end-data-btn" data-action="open-data">
+      ${uiIcon("database", 17)}
+      <span>${escapeHtml(tr("footer.dataExplorer"))}</span>
+    </button>
+    <p class="page-end-legal">
+      <small>${escapeHtml(tr("footer.license"))} · <a href="https://www.meteo.be/" target="_blank" rel="noreferrer noopener">${escapeHtml(tr("footer.official"))}</a></small>
+    </p>
   </footer>`;
 }
 
@@ -1986,7 +2520,7 @@ function footerMarkup() {
 /* Main render                                                         */
 /* ------------------------------------------------------------------ */
 
-function renderApp() {
+function renderApp(options = {}) {
   if (!state.weather) return;
   const weather = state.weather;
   const group = weatherGroup(weather.current.code);
@@ -2025,6 +2559,7 @@ function renderApp() {
     locale: state.locale,
     theme: state.theme,
     placeName: displayName(state.place),
+    force: options.force || false,
   });
   syncModalInert();
   requestAnimationFrame(() => {
@@ -2523,7 +3058,7 @@ function settingsModalContent() {
             value: "metric",
             selected: state.units === "metric",
             icon: "thermometer",
-            title: tr("settings.metric"),
+            title: `°C · ${tr("settings.metric")}`,
             sub: tr("settings.metricSub"),
           })}
           ${optionCard({
@@ -2532,7 +3067,7 @@ function settingsModalContent() {
             value: "imperial",
             selected: state.units === "imperial",
             icon: "globe",
-            title: tr("settings.imperial"),
+            title: `°F · ${tr("settings.imperial")}`,
             sub: tr("settings.imperialSub"),
           })}
         </div>
@@ -3568,7 +4103,7 @@ async function requestWeather({ silent = false, initial = false, notify = false,
     saveLastPlace(state.place);
     writePlaceToUrl(state.place);
     syncNativeWidget(state.place, payload);
-    renderApp();
+    renderApp({ force });
     if (notify) showToast(tr("toast.refreshed"), "success");
   } catch (error) {
     if (seq !== state.requestSeq || error.name === "AbortError") return;
@@ -3577,7 +4112,7 @@ async function requestWeather({ silent = false, initial = false, notify = false,
     if (state.weather) {
       state.cached = true;
       state.status = "ready";
-      renderApp();
+      renderApp({ force });
       if (notify) showToast(tr("toast.cache"), "warn");
     } else {
       state.status = "error";
@@ -3589,7 +4124,12 @@ async function requestWeather({ silent = false, initial = false, notify = false,
 
 function refreshForecast({ notify = true } = {}) {
   if (!state.weather && state.status !== "error") return;
-  requestWeather({ silent: true, initial: false, notify, force: true });
+  if (state.place) {
+    try {
+      localStorage.removeItem(cacheKey(state.place));
+    } catch {}
+  }
+  requestWeather({ silent: false, initial: false, notify, force: true });
 }
 
 function handleAction(event) {

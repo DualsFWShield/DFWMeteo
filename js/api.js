@@ -43,15 +43,15 @@ export async function fetchWeather(place, { signal, force = false, lang = "en" }
   );
   throwIfAborted(signal);
 
-  const official = await fetchIrmOfficial(place, lang).catch(() => null);
+  const official = await fetchIrmOfficial(place, lang, { force }).catch(() => null);
   throwIfAborted(signal);
 
   return official ? { ...payload, official } : payload;
 }
 
-export async function fetchPrecipitationMap(latitude, longitude, { signal } = {}) {
+export async function fetchPrecipitationMap(latitude, longitude, { signal, force = false } = {}) {
   throwIfAborted(signal);
-  const payload = await getPrecipMap(Number(latitude), Number(longitude));
+  const payload = await getPrecipMap(Number(latitude), Number(longitude), { force });
   throwIfAborted(signal);
   return payload;
 }
