@@ -520,9 +520,17 @@ export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }
   const set = timeToMinutes(sunset);
   const now = Number.isFinite(nowMinutes) ? nowMinutes : rise ?? 0;
   let progress = 0;
-  if (rise != null && set != null && set > rise) {
+
+  if (isDay && rise != null && set != null && set > rise) {
+    progress = clamp((now - rise) / (set - rise), 0, 1);
+  } else if (!isDay && rise != null && set != null) {
+    const nightTotal = (1440 - set) + rise;
+    const nightElapsed = now >= set ? now - set : (1440 - set) + now;
+    progress = clamp(nightElapsed / Math.max(1, nightTotal), 0, 1);
+  } else if (rise != null && set != null && set > rise) {
     progress = clamp((now - rise) / (set - rise), 0, 1);
   }
+
   const start = { x: 24, y: 104 };
   const end = { x: 236, y: 104 };
   const control = { x: 130, y: 14 };
@@ -530,7 +538,8 @@ export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }
     x: (1 - t) ** 2 * start.x + 2 * (1 - t) * t * control.x + t ** 2 * end.x,
     y: (1 - t) ** 2 * start.y + 2 * (1 - t) * t * control.y + t ** 2 * end.y,
   });
-  const sun = point(progress);
+  const celestial = point(progress);
+
   return `<div class="sun-arc-wrap">
     <svg viewBox="0 0 260 132" class="sun-arc" role="img" aria-label="${escapeHtml(
       translate("sun.arcLabel"),
@@ -541,6 +550,11 @@ export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }
           <stop offset="50%" stop-color="#f7d795" stop-opacity=".85"/>
           <stop offset="100%" stop-color="#e9a866" stop-opacity=".4"/>
         </linearGradient>
+        <linearGradient id="moon-arc-line" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7185a6" stop-opacity=".4"/>
+          <stop offset="50%" stop-color="#dfe5ee" stop-opacity=".85"/>
+          <stop offset="100%" stop-color="#7185a6" stop-opacity=".4"/>
+        </linearGradient>
         <linearGradient id="sun-horizon" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
           <stop offset="50%" stop-color="rgba(255,255,255,.18)"/>
@@ -548,12 +562,19 @@ export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }
         </linearGradient>
       </defs>
       <path d="M24 104 Q130 8 236 104" fill="none" stroke="rgba(255,255,255,.075)" stroke-width="1.4"/>
-      <path d="M24 104 Q130 8 236 104" fill="none" stroke="url(#sun-arc-line)" stroke-width="2.4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="${1 - progress}"/>
+      <path d="M24 104 Q130 8 236 104" fill="none" stroke="url(#${isDay ? "sun-arc-line" : "moon-arc-line"})" stroke-width="2.4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="${(1 - progress).toFixed(3)}"/>
       <line x1="14" y1="104" x2="246" y2="104" stroke="url(#sun-horizon)" stroke-width="1"/>
-      <g ${isDay ? "" : 'opacity=".5"'}>
-        <circle cx="${sun.x.toFixed(1)}" cy="${sun.y.toFixed(1)}" r="17" fill="url(#wx-sun-glow)" opacity=".8"/>
-        <circle cx="${sun.x.toFixed(1)}" cy="${sun.y.toFixed(1)}" r="6.2" fill="url(#wx-sun)"/>
-      </g>
+      ${
+        isDay
+          ? `<g>
+              <circle cx="${celestial.x.toFixed(1)}" cy="${celestial.y.toFixed(1)}" r="17" fill="url(#wx-sun-glow)" opacity=".8"/>
+              <circle cx="${celestial.x.toFixed(1)}" cy="${celestial.y.toFixed(1)}" r="6.2" fill="url(#wx-sun)"/>
+            </g>`
+          : `<g>
+              <circle cx="${celestial.x.toFixed(1)}" cy="${celestial.y.toFixed(1)}" r="15" fill="rgba(223,229,238,0.25)"/>
+              <circle cx="${celestial.x.toFixed(1)}" cy="${celestial.y.toFixed(1)}" r="6.2" fill="url(#wx-moon)"/>
+            </g>`
+      }
       <circle cx="24" cy="104" r="2.2" fill="rgba(255,255,255,.45)"/>
       <circle cx="236" cy="104" r="2.2" fill="rgba(255,255,255,.45)"/>
     </svg>

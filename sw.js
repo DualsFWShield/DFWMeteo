@@ -96,7 +96,14 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request)),
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ error: "network_unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
+        }),
     );
     return;
   }
@@ -106,13 +113,15 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        });
+        return fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            }
+            return response;
+          })
+          .catch(() => Response.error());
       }),
     );
     return;
@@ -134,14 +143,16 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => {
-          return caches.match(request).then((cached) => {
-            if (cached) return cached;
-            if (request.mode === "navigate") {
-              return caches.match("./index.html");
-            }
-            return caches.match("./");
-          });
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          if (request.mode === "navigate") {
+            const indexCached = await caches.match("./index.html");
+            if (indexCached) return indexCached;
+          }
+          const rootCached = await caches.match("./");
+          if (rootCached) return rootCached;
+          return Response.error();
         }),
     );
     return;
@@ -151,13 +162,15 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response && response.status === 200 && (response.type === "basic" || response.type === "cors")) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      });
+      return fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && (response.type === "basic" || response.type === "cors")) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => Response.error());
     }),
   );
 });
