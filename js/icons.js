@@ -18,6 +18,8 @@ const UI_PATHS = {
   arrowLeft: '<path d="M19 12H5M11 18l-6-6 6-6"/>',
   arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   arrowUpRight: '<path d="M7 17 17 7M8 7h9v9"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  navArrow: '<path d="m3 11 19-9-9 19-2-8-8-2Z"/>',
   sparkles:
     '<path d="M12 3.5c.6 4.2 2.3 5.9 6.5 6.5-4.2.6-5.9 2.3-6.5 6.5-.6-4.2-2.3-5.9-6.5-6.5 4.2-.6 5.9-2.3 6.5-6.5Z"/><path d="M19 15.5c.3 2 1.1 2.8 3 3-1.9.3-2.7 1.1-3 3-.3-1.9-1.1-2.7-3-3 1.9-.2 2.7-1 3-3Z"/>',
   wind: '<path d="M3 8h11.5a2.8 2.8 0 1 0-2.7-3.5M3 12h16a2.5 2.5 0 1 1-2.4 3.2M3 16h7.5a2.4 2.4 0 1 1-2.3 3"/>',
@@ -332,28 +334,454 @@ export function advisoryIcon(type, size = 18) {
 /* Nothing OS Dot-Matrix & Pixel Material You Shapes                   */
 /* ------------------------------------------------------------------ */
 
-const NDOT_GLYPHS = {
-  "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
-  "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
-  "2": ["01110", "10001", "00001", "00110", "01000", "10000", "11111"],
-  "3": ["01110", "10001", "00001", "00110", "00001", "10001", "01110"],
-  "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
-  "5": ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
-  "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
-  "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
-  "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
-  "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
-  "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
-  "−": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
-  "°": ["0110", "1001", "1001", "0110", "0000", "0000", "0000"],
-  "C": ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
-  "F": ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
-  ".": ["00", "00", "00", "00", "00", "11", "11"],
-  ",": ["00", "00", "00", "00", "00", "11", "01"],
-  "%": ["11001", "11010", "00100", "01000", "10110", "00110", "00000"],
+export const NOTHING_WEATHER_ICONS = {
+  clear_day: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  clear_night: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 0, 0, 0, 2, 0, 0],
+    [0, 1, 1, 1, 0, 0, 0, 2, 1, 2, 0],
+    [0, 1, 1, 1, 0, 0, 0, 0, 2, 0, 0],
+    [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  mostly_clear_day: [
+    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 2, 0, 2, 0, 0],
+    [0, 1, 0, 0, 0, 2, 0, 2, 0, 2, 0],
+    [0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0],
+    [0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2],
+    [0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0],
+    [0, 0, 0, 0, 2, 0, 2, 0, 2, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  partly_cloudy_day: [
+    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0],
+    [0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  mostly_clear_night: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 0, 0, 0, 2, 0, 2, 0, 0],
+    [1, 1, 1, 0, 0, 2, 0, 2, 0, 2, 0],
+    [1, 1, 1, 0, 2, 0, 2, 0, 2, 0, 2],
+    [1, 1, 1, 0, 0, 2, 0, 2, 0, 2, 0],
+    [0, 1, 1, 0, 0, 0, 2, 0, 2, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  partly_cloudy_night: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0],
+    [1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  cloudy: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  overcast: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0],
+    [0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0],
+    [0, 2, 2, 2, 2, 0, 1, 1, 1, 0, 0],
+    [2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 0],
+    [0, 2, 2, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  drizzle: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0],
+    [0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0],
+    [0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  rain: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0],
+    [0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0],
+    [0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  heavy_rain: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  rain_day: [
+    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0],
+    [0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+    [0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0],
+  ],
+  rain_night: [
+    [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0],
+    [1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0],
+    [0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+    [0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0],
+  ],
+  snow: [
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+  ],
+  heavy_snow: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    [0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  sleet: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 2, 0, 0, 2, 0, 1, 1, 1, 0],
+    [0, 2, 0, 0, 2, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  thunderstorm: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+  ],
+  thunderstorm_rain: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 2, 0, 0, 1, 1, 0, 0, 2, 0],
+    [0, 2, 0, 0, 1, 1, 0, 0, 2, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 2, 0, 0, 1, 1, 0, 2, 0, 0],
+    [0, 2, 0, 0, 1, 0, 0, 2, 0, 0, 0],
+  ],
+  hail: [
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+  ],
+  fog: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  mist_haze: [
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0],
+  ],
+  wind: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0],
+    [0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0],
+  ],
+  tornado: [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+  ],
+  sunrise: [
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  sunset: [
+    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
 };
 
-export function dotMatrixText(text, { dotSize = 3.2, gap = 1.6, color = "currentColor", className = "" } = {}) {
+export const DotMatrixPatterns = {
+  SUNNY: NOTHING_WEATHER_ICONS.clear_day,
+  CLEAR_NIGHT: NOTHING_WEATHER_ICONS.clear_night,
+  MOSTLY_CLEAR_DAY: NOTHING_WEATHER_ICONS.mostly_clear_day,
+  MOSTLY_CLEAR_NIGHT: NOTHING_WEATHER_ICONS.mostly_clear_night,
+  PARTLY_CLOUDY: NOTHING_WEATHER_ICONS.partly_cloudy_day,
+  PARTLY_CLOUDY_NIGHT: NOTHING_WEATHER_ICONS.partly_cloudy_night,
+  CLOUDY: NOTHING_WEATHER_ICONS.cloudy,
+  OVERCAST: NOTHING_WEATHER_ICONS.overcast,
+  RAINY: NOTHING_WEATHER_ICONS.rain,
+  DRIZZLE: NOTHING_WEATHER_ICONS.drizzle,
+  HEAVY_RAIN: NOTHING_WEATHER_ICONS.heavy_rain,
+  RAIN_DAY: NOTHING_WEATHER_ICONS.rain_day,
+  RAIN_NIGHT: NOTHING_WEATHER_ICONS.rain_night,
+  SNOW: NOTHING_WEATHER_ICONS.snow,
+  HEAVY_SNOW: NOTHING_WEATHER_ICONS.heavy_snow,
+  SLEET: NOTHING_WEATHER_ICONS.sleet,
+  THUNDERSTORM: NOTHING_WEATHER_ICONS.thunderstorm,
+  THUNDERSTORM_RAIN: NOTHING_WEATHER_ICONS.thunderstorm_rain,
+  HAIL: NOTHING_WEATHER_ICONS.hail,
+  FOG: NOTHING_WEATHER_ICONS.fog,
+  MIST_HAZE: NOTHING_WEATHER_ICONS.mist_haze,
+  WINDY: NOTHING_WEATHER_ICONS.wind,
+  TORNADO: NOTHING_WEATHER_ICONS.tornado,
+  SUNRISE: NOTHING_WEATHER_ICONS.sunrise,
+  SUNSET: NOTHING_WEATHER_ICONS.sunset,
+  MOON_FULL: [
+    [0, 0, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 0, 0],
+  ],
+  MOON_CRESCENT: [
+    [0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1],
+    [0, 0, 0, 0, 1, 1, 1],
+    [0, 0, 0, 0, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 0, 0],
+  ],
+  MOON_QUARTER: [
+    [0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 0, 0],
+  ],
+  MOON_GIBBOUS: [
+    [0, 0, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 0, 0],
+  ],
+  MOON_NEW: [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 2, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+  ],
+};
+
+export const NDotFont = {
+  GLYPHS: {
+    "0": [" 111 ", "10001", "10011", "10101", "11001", "10001", " 111 "],
+    "1": ["  11 ", " 011 ", "  11 ", "  11 ", "  11 ", "  11 ", " 1111"],
+    "2": [" 111 ", "10001", "00001", "  110", " 1000", "10000", "11111"],
+    "3": ["1111 ", "00001", "00001", " 111 ", "00001", "00001", "1111 "],
+    "4": ["10001", "10001", "10001", "11111", "00001", "00001", "00001"],
+    "5": ["11111", "10000", "1111 ", "00001", "00001", "10001", " 111 "],
+    "6": [" 111 ", "10000", "10000", "1111 ", "10001", "10001", " 111 "],
+    "7": ["11111", "00001", "00010", "  100", " 0100", " 0100", " 0100"],
+    "8": [" 111 ", "10001", "10001", " 111 ", "10001", "10001", " 111 "],
+    "9": [" 111 ", "10001", "10001", " 1111", "00001", "00001", " 111 "],
+    "°": ["  1  ", " 1 1 ", "  1  ", "     ", "     ", "     ", "     "],
+    ":": ["     ", "  1  ", "  1  ", "     ", "  1  ", "  1  ", "     "],
+    " ": ["     ", "     ", "     ", "     ", "     ", "     ", "     "],
+    "-": ["     ", "     ", "     ", "1111 ", "     ", "     ", "     "],
+    "−": ["     ", "     ", "     ", "1111 ", "     ", "     ", "     "],
+    "%": ["11001", "11010", "00100", "01000", "01011", "10011", "     "],
+    "C": [" 1111", "10000", "10000", "10000", "10000", "10000", " 1111"],
+    "F": ["11111", "10000", "10000", "1111 ", "10000", "10000", "10000"],
+    ".": ["     ", "     ", "     ", "     ", "     ", " 11  ", " 11  "],
+    ",": ["     ", "     ", "     ", "     ", "     ", " 11  ", " 01  "],
+    "+": ["     ", "  1  ", "  1  ", "11111", "  1  ", "  1  ", "     "],
+    "/": ["   1 ", "   1 ", "  1  ", "  1  ", " 1   ", " 1   ", "     "],
+  },
+};
+
+export const NOTHING_COLORS = {
+  black: "#000000",
+  darkGray: "#121212",
+  cardBg: "#171717",
+  cardBorder: "#262626",
+  cardInner: "#1F1F1F",
+  white: "#FFFFFF",
+  white70: "rgba(255, 255, 255, 0.7)",
+  white40: "rgba(255, 255, 255, 0.4)",
+  white20: "rgba(255, 255, 255, 0.2)",
+  white10: "rgba(255, 255, 255, 0.1)",
+  red: "#D71920",
+  redDim: "rgba(215, 25, 32, 0.2)",
+  glow: "rgba(255, 255, 255, 0.5)",
+};
+
+export function dotMatrixText(
+  text,
+  { dotSize = 3.2, gap = 1.6, color = "currentColor", className = "", showEmpty = false } = {},
+) {
   const chars = String(text ?? "").split("");
   const step = dotSize + gap;
   let cursorX = 0;
@@ -364,158 +792,134 @@ export function dotMatrixText(text, { dotSize = 3.2, gap = 1.6, color = "current
       cursorX += step * 3;
       continue;
     }
-    const grid = NDOT_GLYPHS[ch] || NDOT_GLYPHS[ch.toUpperCase()];
+    const grid = NDotFont.GLYPHS[ch] || NDotFont.GLYPHS[ch.toUpperCase()];
     if (!grid) continue;
     const cols = grid[0].length;
     for (let r = 0; r < grid.length; r += 1) {
       for (let c = 0; c < cols; c += 1) {
-        if (grid[r][c] === "1") {
-          const cx = cursorX + c * step + dotSize / 2;
-          const cy = r * step + dotSize / 2;
+        const val = grid[r][c];
+        const cx = cursorX + c * step + dotSize / 2;
+        const cy = r * step + dotSize / 2;
+        if (val === "1") {
           circles.push(
-            `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${(dotSize / 2).toFixed(2)}" />`,
+            `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${(dotSize / 2).toFixed(2)}" fill="${color}" />`,
+          );
+        } else if (showEmpty) {
+          circles.push(
+            `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${(dotSize * 0.35).toFixed(2)}" fill="rgba(255,255,255,0.08)" />`,
           );
         }
       }
     }
-    cursorX += (cols + 1.35) * step;
+    cursorX += (cols + 1) * step;
   }
 
   const width = Math.max(1, cursorX - gap);
   const height = 7 * step - gap;
-  return `<svg class="ndot-svg ${className}" viewBox="0 0 ${width.toFixed(2)} ${height.toFixed(2)}" width="${width.toFixed(1)}" height="${height.toFixed(1)}" fill="${color}" aria-label="${String(text ?? "")}" role="img">${circles.join("")}</svg>`;
+  return `<svg class="ndot-svg ${className}" viewBox="0 0 ${width.toFixed(2)} ${height.toFixed(2)}" width="${width.toFixed(1)}" height="${height.toFixed(1)}" aria-label="${String(text ?? "")}" role="img">${circles.join("")}</svg>`;
 }
 
-const NOTHING_DOT_GRIDS = {
-  clearDay: [
-    "000001000100000",
-    "001001000100100",
-    "000100111001000",
-    "000011111110000",
-    "010111111111010",
-    "100111111111001",
-    "000111111111000",
-    "100111111111001",
-    "010111111111010",
-    "000011111110000",
-    "000100111001000",
-    "001001000100100",
-  ],
-  clearNight: [
-    "000000111100000",
-    "000011111000000",
-    "000111110000000",
-    "001111100000100",
-    "001111100001110",
-    "001111100000100",
-    "001111110000000",
-    "000111111000000",
-    "000011111111000",
-    "000001111111100",
-    "000000011110000",
-    "000000000000000",
-  ],
-  partly: [
-    "000100100100000",
-    "000011111000000",
-    "001111111111000",
-    "000111001111110",
-    "000010111111111",
-    "001111111111111",
-    "011111111111111",
-    "111111111111111",
-    "111111111111111",
-    "011111111111110",
-    "000000000000000",
-    "000000000000000",
-  ],
-  cloudy: [
-    "000000000000000",
-    "000000001111000",
-    "000000011111110",
-    "000111011111111",
-    "001111111111111",
-    "011111111111111",
-    "111111111111111",
-    "111111111111111",
-    "011111111111110",
-    "001111111111100",
-    "000000000000000",
-    "000000000000000",
-  ],
-  rain: [
-    "000000011110000",
-    "000111111111100",
-    "001111111111110",
-    "011111111111111",
-    "111111111111111",
-    "011111111111110",
-    "000000000000000",
-    "000100100100100",
-    "001001001001000",
-    "000010010010010",
-    "000100100100100",
-    "000000000000000",
-  ],
-  snow: [
-    "000000011110000",
-    "000111111111100",
-    "001111111111110",
-    "011111111111111",
-    "111111111111111",
-    "011111111111110",
-    "000000000000000",
-    "001010010100100",
-    "000100001001010",
-    "001010010100100",
-    "000000000000000",
-    "000000000000000",
-  ],
-  thunder: [
-    "000000011110000",
-    "000111111111100",
-    "001111111111110",
-    "011111111111111",
-    "111111111111111",
-    "011111111111110",
-    "000000111000000",
-    "000001110000000",
-    "000011111100000",
-    "000000011000000",
-    "000000110000000",
-    "000001000000000",
-  ],
-  fog: [
-    "000000111100000",
-    "000111111111000",
-    "001111111111100",
-    "011111111111110",
-    "000000000000000",
-    "011111111111110",
-    "000000000000000",
-    "001111111111100",
-    "000000000000000",
-    "000011111110000",
-    "000000000000000",
-    "000000000000000",
-  ],
-};
+export function getDotMatrixPattern(codeOrName, isDay = true) {
+  if (typeof codeOrName === "string" && NOTHING_WEATHER_ICONS[codeOrName]) {
+    return NOTHING_WEATHER_ICONS[codeOrName];
+  }
 
-export function nothingWeatherDotGlyph(code, isDay = true, size = 160, label = "") {
+  const code = Number(codeOrName);
+
+  if (code === 0) {
+    return isDay ? NOTHING_WEATHER_ICONS.clear_day : NOTHING_WEATHER_ICONS.clear_night;
+  }
+  if (code === 1) {
+    return isDay ? NOTHING_WEATHER_ICONS.mostly_clear_day : NOTHING_WEATHER_ICONS.mostly_clear_night;
+  }
+  if (code === 2) {
+    return isDay ? NOTHING_WEATHER_ICONS.partly_cloudy_day : NOTHING_WEATHER_ICONS.partly_cloudy_night;
+  }
+  if (code === 3) {
+    return NOTHING_WEATHER_ICONS.overcast;
+  }
+  if (code === 45) {
+    return NOTHING_WEATHER_ICONS.mist_haze;
+  }
+  if (code === 48) {
+    return NOTHING_WEATHER_ICONS.fog;
+  }
+  if (code === 51 || code === 53 || code === 55) {
+    return NOTHING_WEATHER_ICONS.drizzle;
+  }
+  if (code === 56 || code === 57) {
+    return NOTHING_WEATHER_ICONS.sleet;
+  }
+  if (code === 61 || code === 63) {
+    return NOTHING_WEATHER_ICONS.rain;
+  }
+  if (code === 65) {
+    return NOTHING_WEATHER_ICONS.heavy_rain;
+  }
+  if (code === 66 || code === 67) {
+    return NOTHING_WEATHER_ICONS.sleet;
+  }
+  if (code === 71 || code === 73 || code === 77) {
+    return NOTHING_WEATHER_ICONS.snow;
+  }
+  if (code === 75) {
+    return NOTHING_WEATHER_ICONS.heavy_snow;
+  }
+  if (code === 80) {
+    return isDay ? NOTHING_WEATHER_ICONS.rain_day : NOTHING_WEATHER_ICONS.rain_night;
+  }
+  if (code === 81) {
+    return NOTHING_WEATHER_ICONS.rain;
+  }
+  if (code === 82) {
+    return NOTHING_WEATHER_ICONS.heavy_rain;
+  }
+  if (code === 85 || code === 86) {
+    return NOTHING_WEATHER_ICONS.heavy_snow;
+  }
+  if (code === 95) {
+    return NOTHING_WEATHER_ICONS.thunderstorm;
+  }
+  if (code === 96 || code === 99) {
+    return NOTHING_WEATHER_ICONS.thunderstorm_rain;
+  }
+
   const info = weatherInfo(code);
-  let key = info.group;
-  if (key === "clear") key = isDay ? "clearDay" : "clearNight";
-  else if (key === "drizzle") key = "rain";
-  const grid = NOTHING_DOT_GRIDS[key] || NOTHING_DOT_GRIDS.cloudy;
+  const group = info.group;
+  if (group === "thunder") return NOTHING_WEATHER_ICONS.thunderstorm;
+  if (group === "snow") return NOTHING_WEATHER_ICONS.snow;
+  if (group === "rain") return NOTHING_WEATHER_ICONS.rain;
+  if (group === "drizzle") return NOTHING_WEATHER_ICONS.drizzle;
+  if (group === "fog") return NOTHING_WEATHER_ICONS.fog;
+  if (group === "cloudy") return NOTHING_WEATHER_ICONS.cloudy;
+  if (group === "partly") return isDay ? NOTHING_WEATHER_ICONS.partly_cloudy_day : NOTHING_WEATHER_ICONS.partly_cloudy_night;
+
+  return isDay ? NOTHING_WEATHER_ICONS.clear_day : NOTHING_WEATHER_ICONS.clear_night;
+}
+
+export function nothingWeatherDotGlyph(
+  codeOrName,
+  isDay = true,
+  size = 160,
+  label = "",
+) {
+  const grid = getDotMatrixPattern(codeOrName, isDay);
   const rows = grid.length;
   const cols = grid[0].length;
   const step = 10;
-  const r = 4.1;
+  const r = 3.6;
+  const group =
+    typeof codeOrName === "string"
+      ? codeOrName
+      : weatherInfo(Number(codeOrName)).group;
 
   const activeCells = [];
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < cols; x += 1) {
-      if (grid[y][x] === "1") activeCells.push({ x, y });
+      const val = Number(grid[y][x]);
+      if (val === 1 || val === 2) {
+        activeCells.push({ x, y, val });
+      }
     }
   }
 
@@ -530,44 +934,99 @@ export function nothingWeatherDotGlyph(code, isDay = true, size = 160, label = "
     ...activeCells.map((cell) => Math.hypot(cell.x - centerX, cell.y - centerY)),
   );
 
-  const dots = activeCells.map(({ x, y }) => {
+  const dots = activeCells.map(({ x, y, val }) => {
     const cx = x * step + 5;
     const cy = y * step + 5;
     const dist = Math.hypot(x - centerX, y - centerY);
     const normDist = dist / maxDist;
     const enterDelay = Math.round(normDist * 460);
-    const fromX = ((centerX - x) * step * 0.52).toFixed(1);
-    const fromY = ((centerY - y) * step * 0.52).toFixed(1);
-    const isBolt = key === "thunder" && y >= 6;
-    const isDrop = (key === "rain" || key === "snow") && y >= 7;
-    const isRay =
-      (key === "clearDay" && dist > 4.1) ||
-      (key === "clearNight" && x >= 11) ||
-      (key === "partly" && y <= 2 && x <= 10);
-    const isFogBand = key === "fog" && y >= 5;
+    const fromX = ((centerX - x) * step * 0.56).toFixed(1);
+    const fromY = ((centerY - y) * step * 0.56).toFixed(1);
+
+    const isThunder = group === "thunder" || String(codeOrName).includes("thunder");
+    const isRain =
+      group === "rain" ||
+      group === "drizzle" ||
+      String(codeOrName).includes("rain") ||
+      String(codeOrName).includes("drizzle") ||
+      String(codeOrName).includes("sleet");
+    const isSnow =
+      group === "snow" ||
+      String(codeOrName).includes("snow") ||
+      String(codeOrName).includes("hail");
+    const isFog =
+      group === "fog" ||
+      String(codeOrName).includes("fog") ||
+      String(codeOrName).includes("mist");
+    const isClear = group === "clear" || String(codeOrName).includes("clear");
+    const isPartly = group === "partly" || String(codeOrName).includes("partly");
 
     let roleClass = "ndot-cell--core";
     let pulseDelay = Math.round(normDist * 1200 + ((x + y) % 4) * 140);
-    if (isBolt) {
+
+    if (isThunder && y >= 6 && val === 1) {
       roleClass = "ndot-cell--bolt";
       pulseDelay = (y - 6) * 110;
-    } else if (isDrop) {
-      roleClass = key === "snow" ? "ndot-cell--flake" : "ndot-cell--drop";
-      pulseDelay = (y - 7) * 240 + (x % 4) * 110;
-    } else if (isRay) {
-      roleClass = "ndot-cell--ray";
-      pulseDelay = ((x * 3 + y * 5) % 8) * 180;
-    } else if (isFogBand) {
+    } else if ((isRain || isThunder) && y >= 6 && (val === 2 || isRain)) {
+      roleClass = "ndot-cell--drop";
+      pulseDelay = (y - 6) * 220 + (x % 4) * 110;
+    } else if (isSnow && (y >= 6 || dist > 2.4)) {
+      roleClass = "ndot-cell--flake";
+      pulseDelay = y * 160 + (x % 4) * 110;
+    } else if (isFog && y >= 4) {
       roleClass = "ndot-cell--fog";
       pulseDelay = y * 150 + x * 45;
+    } else if ((isClear && dist > 2.6) || (isPartly && ((isDay && y <= 5 && x <= 5 && dist > 1.8) || val === 2))) {
+      roleClass = "ndot-cell--ray";
+      pulseDelay = ((x * 3 + y * 5) % 8) * 180;
     }
 
-    return `<circle class="ndot-cell ${roleClass}" style="--enter-delay:${enterDelay}ms;--pulse-delay:${pulseDelay}ms;--from-x:${fromX}px;--from-y:${fromY}px;transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r}" fill="${isBolt ? "#ff281e" : "#f5f5f5"}" />`;
+    const fill = val === 2 ? "#757575" : "#FFFFFF";
+    const toneClass = val === 2 ? "ndot-dim" : "ndot-white";
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" class="${toneClass} ndot-cell ${roleClass}" style="--enter-delay:${enterDelay}ms;--pulse-delay:${pulseDelay}ms;--from-x:${fromX}px;--from-y:${fromY}px;transform-origin:${cx}px ${cy}px" />`;
   });
 
   const w = cols * step;
   const h = rows * step;
-  return `<svg class="nothing-dot-wx nothing-dot-wx--${key}" width="${size}" height="${Math.round((size * h) / w)}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${dots.join("")}</svg>`;
+  const aspectH = Math.round((size * h) / w);
+  return `<svg class="nothing-dot-wx" width="${size}" height="${aspectH}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${dots.join("")}</svg>`;
+}
+
+export function nothingMoonDotGlyph(moonPhase = "full", size = 56, label = "") {
+  const phase = String(moonPhase || "").toLowerCase();
+  let pattern = DotMatrixPatterns.MOON_FULL;
+  if (phase.includes("new")) pattern = DotMatrixPatterns.MOON_NEW;
+  else if (phase.includes("crescent")) pattern = DotMatrixPatterns.MOON_CRESCENT;
+  else if (phase.includes("quarter")) pattern = DotMatrixPatterns.MOON_QUARTER;
+  else if (phase.includes("gibbous")) pattern = DotMatrixPatterns.MOON_GIBBOUS;
+  else if (phase.includes("full")) pattern = DotMatrixPatterns.MOON_FULL;
+
+  const rows = pattern.length;
+  const cols = pattern[0].length;
+  const step = 10;
+  const r = 3.6;
+  const dots = [];
+
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      const val = pattern[y][x];
+      const cx = x * step + 5;
+      const cy = y * step + 5;
+      if (val === 1) {
+        dots.push(
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#FFFFFF" class="ndot-white" />`,
+        );
+      } else if (val === 2) {
+        dots.push(
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#757575" class="ndot-dim" />`,
+        );
+      }
+    }
+  }
+
+  const w = cols * step;
+  const h = rows * step;
+  return `<svg class="nothing-dot-wx nothing-dot-moon" width="${size}" height="${size}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${dots.join("")}</svg>`;
 }
 
 export function pixelScallopPath(cx = 100, cy = 100, outerR = 92, innerR = 81, lobes = 12) {

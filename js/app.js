@@ -67,6 +67,7 @@ import {
   dotMatrixText,
   modelGlyph,
   moonIcon,
+  nothingMoonDotGlyph,
   nothingWeatherDotGlyph,
   pixelScallopPath,
   uiIcon,
@@ -136,6 +137,7 @@ const state = {
   hourlyMetric: "temp",
   hourlyWindow: 24,
   briefExpanded: false,
+  nothingDaysExpanded: false,
   modal: null,
   modalTrigger: null,
   search: {
@@ -918,6 +920,23 @@ function headerMarkup() {
   const country = countryLabel(state.place);
   const unitLabel = state.units === "imperial" ? "°F" : "°C";
   const unitTitle = state.units === "imperial" ? tr("nav.switchToC") : tr("nav.switchToF");
+
+  if (state.theme === "nothing") {
+    return `<header class="topbar topbar--nothing">
+      <div class="topbar-inner">
+        <button class="icon-button nothing-nav-btn" data-action="search" aria-label="${escapeHtml(tr("nav.search"))}">
+          ${uiIcon("menu", 20)}
+        </button>
+        <button class="nothing-place-btn" data-action="search" aria-label="${escapeHtml(tr("nav.search"))} — ${escapeHtml(name)}">
+          ${uiIcon("navArrow", 15)}
+          <span>${escapeHtml(name)}</span>
+        </button>
+        <button class="icon-button nothing-settings-btn" data-action="settings" aria-label="${escapeHtml(tr("nav.settings"))}" title="${escapeHtml(tr("nav.settings"))}">
+          ${uiIcon("settings", 20)}
+        </button>
+      </div>
+    </header>`;
+  }
   return `<header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="./" data-action="home" aria-label="DFWMeteo — ${escapeHtml(
@@ -1132,40 +1151,25 @@ function heroMarkup(weather) {
   }
 
   if (state.theme === "nothing") {
-    const tempStr = `${formatTempValue(weather.current.temp, state.units, state.locale)}${temperatureUnit()}`;
+    const tempNum = formatTempValue(weather.current.temp, state.units, state.locale);
+    const lowNum = formatTempValue(weather.current.low, state.units, state.locale);
+    const highNum = formatTempValue(weather.current.high, state.units, state.locale);
     return `<section class="hero hero--nothing" aria-labelledby="hero-city">
       <div class="hero-inner hero-inner--nothing">
-        <div class="nothing-topbar-row">
-          <span class="nothing-live-tag"><i class="nothing-red-dot"></i>${local.hour}:${local.minute}</span>
-          <h1 id="hero-city" class="nothing-city-title">${escapeHtml(displayName(state.place))}</h1>
-          <button class="favorite-button ${isFavorite(state.place) ? "is-favorite" : ""}" data-action="toggle-favorite" aria-label="${escapeHtml(
-            isFavorite(state.place) ? tr("hero.removeFavorite") : tr("hero.addFavorite"),
-          )}">${uiIcon("star", 17)}</button>
-        </div>
-        <div class="nothing-summary-split">
-          <div class="nothing-temp-matrix">
-            ${dotMatrixText(tempStr, { dotSize: 4.2, gap: 2, color: "#f5f5f5" })}
+        <div class="nothing-hero-head">
+          <div class="nothing-hero-temp">
+            <span>${escapeHtml(tempNum)}°C</span>
           </div>
-          <div class="nothing-cond-block">
+          <div class="nothing-hero-meta">
             <p class="nothing-cond-label">${escapeHtml(currentCondition(weather))}</p>
             <p class="nothing-minmax">
-              <span class="nothing-min">↓ ${escapeHtml(formatTemp(weather.current.low, state.units, state.locale))}</span>
-              <span class="nothing-max"><i>↑</i> ${escapeHtml(formatTemp(weather.current.high, state.units, state.locale))}</span>
+              <span class="nothing-min"><i class="nothing-arrow-down">↓</i> ${escapeHtml(lowNum)}°</span>
+              <span class="nothing-max"><i class="nothing-arrow-up">↑</i> ${escapeHtml(highNum)}°</span>
             </p>
           </div>
         </div>
         <div class="nothing-center-stage">
-          ${nothingWeatherDotGlyph(weather.current.code, isDay, 196, currentCondition(weather))}
-        </div>
-        <div class="nothing-hero-foot">
-          <button class="model-pill" data-action="scroll-models">
-            ${modelGlyph(14)}
-            <span>${escapeHtml(tr("hero.consensus", { n: sourceCount(weather) }))}</span>
-            <i>${confidence}%</i>
-          </button>
-          <span class="updated-pill" data-updated>${escapeHtml(
-            state.refreshing ? tr("common.updating") : updatedLabel(weather),
-          )}</span>
+          ${nothingWeatherDotGlyph(weather.current.code, isDay, 180, currentCondition(weather), weather.sun?.moon?.nameKey)}
         </div>
       </div>
     </section>`;
@@ -1806,6 +1810,60 @@ function hourlyMarkup(weather) {
   const isNothing = state.theme === "nothing";
   const eyebrowKey = windowHours === 48 ? "hourly.eyebrow48" : "hourly.eyebrow";
 
+  if (isNothing) {
+    const hourlyTitle = state.locale === "fr" ? "Prévisions heure par heure" : state.locale === "nl" ? "Verwachting per uur" : "Hourly forecast";
+    return `<section class="card hourly-card hourly-card--nothing" aria-labelledby="hourly-title">
+      <div class="nothing-card-head">
+        <h2 id="hourly-title" class="nothing-card-title">${escapeHtml(hourlyTitle)}</h2>
+        <button class="nothing-card-link" data-action="set-hourly-view" data-view="${isCompare ? "overview" : "compare"}" aria-label="${escapeHtml(tr("hourly.compare"))}">
+          ${uiIcon("arrowUpRight", 17)}
+        </button>
+      </div>
+      ${
+        isCompare
+          ? `<div class="metric-switch" role="group" aria-label="${escapeHtml(tr("hourly.compare"))}">
+              ${metrics
+                .map(
+                  (metric) => `<button class="${state.hourlyMetric === metric ? "is-active" : ""}" data-action="set-hourly-metric" data-metric="${metric}">${escapeHtml(tr(`hourly.${metric}`))}</button>`,
+                )
+                .join("")}
+            </div>
+            ${modelSpreadChart({
+              hourly: weather.hourly,
+              sources: weather.sources,
+              metric: state.hourlyMetric,
+              locale: state.locale,
+              units: state.units,
+              translate: tr,
+            })}`
+          : `<div class="nothing-hourly-wrap">
+              <div class="hour-rail hour-rail--nothing" role="list" aria-label="${escapeHtml(tr("hourly.eyebrow"))}">
+                ${hours
+                  .slice(0, 12)
+                  .map((hour, index) => {
+                    const label = index === 0 ? (state.locale === "fr" ? "MNT" : state.locale === "nl" ? "NU" : "NOW") : formatHour(hour.time).slice(0, 2);
+                    const glyph = nothingWeatherDotGlyph(
+                      hour.code,
+                      hour.isDay,
+                      26,
+                      tr(`wx.${weatherKey(hour.code)}`),
+                      weather.sun?.moon?.nameKey,
+                    );
+                    return `<div class="hour-cell hour-cell--nothing ${index === 0 ? "is-now" : ""}" role="listitem">
+                      <strong class="hour-temp">${escapeHtml(formatTempValue(hour.temp, state.units, state.locale))}°</strong>
+                      <span class="hour-glyph">${glyph}</span>
+                      <span class="hour-rain">${hour.precipitationProbability >= 25 ? `${Math.round(hour.precipitationProbability)}%` : "&nbsp;"}</span>
+                      <span class="hour-label">${escapeHtml(label)}</span>
+                    </div>`;
+                  })
+                  .join("")}
+              </div>
+              ${nothingHourlyCurveSvg(hours)}
+            </div>`
+      }
+    </section>`;
+  }
+
   return `<section class="card hourly-card" aria-labelledby="hourly-title">
     <div class="card-head hourly-head">
       <div><p class="eyebrow">${uiIcon("clock", 13)} ${escapeHtml(tr(eyebrowKey))}</p><h2 id="hourly-title">${escapeHtml(
@@ -1908,11 +1966,10 @@ function hourlyMarkup(weather) {
                         index === 0
                           ? tr("common.now").toUpperCase()
                           : formatHour(hour.time).slice(0, 2);
-                      const glyph = weatherGlyph(
+                      const glyph = nothingWeatherDotGlyph(
                         hour.code,
                         hour.isDay,
-                        "xs",
-                        "",
+                        24,
                         tr(`wx.${weatherKey(hour.code)}`),
                       );
                       return `<div class="hour-cell hour-cell--nothing ${index === 0 ? "is-now" : ""}" role="listitem">
@@ -1991,46 +2048,50 @@ function dailyMarkup(weather) {
   const range = Math.max(1, high - low);
 
   if (state.theme === "nothing") {
+    const isExpanded = state.nothingDaysExpanded;
+    const visibleDays = isExpanded ? days.slice(0, 10) : days.slice(0, 3);
+    const title = state.locale === "fr" ? "Prévisions du jour" : state.locale === "nl" ? "Dagelijkse verwachting" : "Daily forecast";
+    const toggleLabel = isExpanded
+      ? (state.locale === "fr" ? "Réduire" : state.locale === "nl" ? "Minder weergeven" : "Collapse")
+      : (state.locale === "fr" ? "Afficher plus" : state.locale === "nl" ? "Meer weergeven" : "Show more");
+    const toggleIcon = isExpanded ? "⌃" : "⌄";
+
     return `<section class="card daily-card daily-card--nothing" aria-labelledby="daily-title">
-      <div class="card-head">
-        <div><p class="eyebrow">${escapeHtml(tr("daily.eyebrow"))}</p><h2 id="daily-title">${escapeHtml(
-          tr("daily.title"),
-        )}</h2></div>
+      <div class="nothing-card-head">
+        <h2 id="daily-title" class="nothing-card-title">${escapeHtml(title)}</h2>
+        <span class="nothing-card-link" aria-hidden="true">${uiIcon("arrowUpRight", 17)}</span>
       </div>
       <div class="nothing-day-list">
-        ${days
+        ${visibleDays
           .map((day, index) => {
-            const name = dayName(day.date, index).toUpperCase();
-            const start = clamp(((day.min - low) / range) * 100, 0, 92);
+            const rawName = index === 0 ? "AUJ" : formatWeekdayShort(day.date, state.locale);
+            const name = index === 0 ? "AUJ" : rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();
+            const start = clamp(((day.min - low) / range) * 100, 0, 90);
             const width = clamp(((day.max - day.min) / range) * 100, 8, 100 - start);
-            const markerPos = clamp(((weather.current.temp - low) / range) * 100, start, start + width);
+            const pop = Math.round(day.precipitationProbability || 0);
             return `<button class="nothing-day-row ${index === 0 ? "is-today" : ""}" data-action="select-day" data-date="${escapeHtml(
               day.date,
             )}">
               <span class="nothing-day-name">${escapeHtml(name)}</span>
               <span class="nothing-day-wx">
-                ${weatherGlyph(day.code, true, "xs", "", dayCondition(day))}
-                ${
-                  day.precipitationProbability >= 20
-                    ? `<small>${Math.round(day.precipitationProbability)}%</small>`
-                    : `<small></small>`
-                }
+                ${nothingWeatherDotGlyph(day.code, true, 22, dayCondition(day))}
+                ${pop >= 20 ? `<small class="nothing-day-pop">${pop}%</small>` : ""}
               </span>
-              <span class="nothing-day-min">${escapeHtml(
-                formatTemp(day.min, state.units, state.locale),
-              )}</span>
+              <span class="nothing-day-min">${escapeHtml(formatTempValue(day.min, state.units, state.locale))}°</span>
               <span class="nothing-day-range">
-                <i style="left:${start.toFixed(1)}%;width:${width.toFixed(1)}%"></i>
-                ${index === 0 ? `<b class="nothing-day-tick" style="left:${markerPos.toFixed(1)}%"></b>` : ""}
+                <i class="nothing-day-fill" style="left:${start.toFixed(1)}%;width:${width.toFixed(1)}%">
+                  <b class="nothing-day-red-tick"></b>
+                </i>
               </span>
-              <span class="nothing-day-max">${escapeHtml(
-                formatTemp(day.max, state.units, state.locale),
-              )}</span>
+              <span class="nothing-day-max">${escapeHtml(formatTempValue(day.max, state.units, state.locale))}°</span>
             </button>`;
           })
           .join("")}
       </div>
-      <div class="nothing-day-footer">⌄ ${escapeHtml(tr("daily.title").toUpperCase())}</div>
+      <button class="nothing-day-toggle" data-action="toggle-nothing-days">
+        <span>${escapeHtml(toggleLabel)}</span>
+        <span class="nothing-day-toggle-icon">${toggleIcon}</span>
+      </button>
     </section>`;
   }
 
@@ -2323,161 +2384,212 @@ function pixelDetailsMarkup(weather) {
 }
 
 function nothingDetailsMarkup(weather) {
+  const isFr = state.locale === "fr";
   const uv = Math.round(weather.current.uvIndex ?? 0);
-  const uvCat = tr(`details.uv${capitalize(uvCategory(weather.current.uvIndex))}`);
-  const visibility = weather.current.visibility;
-  const visVal = formatVisibility(visibility, state.units, state.locale);
-  const visLabel =
-    visibility > 10 ? tr("details.visibilityGood").split("/")[0].trim() : tr("details.visibilityModerate");
-  const windVal = formatWind(weather.current.windSpeed, state.units, state.locale).toUpperCase();
-  const windDir = compassPoint(weather.current.windDirection, state.locale);
-  const windRot = Number(weather.current.windDirection) || 0;
-  const humidity = Math.round(weather.current.humidity);
-  const cylY = (78 - (humidity / 100) * 48).toFixed(1);
-  const pressureVal =
-    state.units === "imperial"
-      ? localeNumber(Number(weather.current.pressure) * 0.02953, 2)
-      : localeNumber(weather.current.pressure, 1);
-  const pressureUnit = state.units === "imperial" ? "inHg" : "hPa";
-  const pressurePct = clamp(((Number(weather.current.pressure) || 1013) - 975) / 65, 0, 1);
-  const pressureAngle = -140 + pressurePct * 280;
-  const aqi = weather.airQuality?.aqi ?? 22;
-  const aqiLabel = weather.airQuality
-    ? tr(`air.level.${aqiKey(weather.airQuality.level)}`)
-    : tr("air.level.good");
-  const sunrise = formatHour(weather.sun.sunrise);
-  const daylight = formatDaylight(weather.sun.daylightSeconds, state.locale);
+  const uvTitle = isFr ? "Indice UV" : tr("details.uv");
+  const uvCat = isFr
+    ? (uv <= 2 ? "Minimum" : uv <= 5 ? "Faible" : uv <= 7 ? "Modéré" : "Élevé")
+    : tr(`details.uv${capitalize(uvCategory(weather.current.uvIndex))}`);
 
-  // Generate 8x5 dot matrix for Air Quality
+  const visibility = weather.current.visibility;
+  const visKm = Math.round(state.units === "imperial" ? visibility * 0.621371 : visibility);
+  const visTitle = isFr ? "Visibilité" : tr("details.visibility");
+  const visLabel = isFr
+    ? (visKm >= 20 ? "Excellente" : visKm >= 10 ? "Bonne" : visKm >= 4 ? "Moyenne" : "Faible")
+    : (visibility > 10 ? tr("details.visibilityGood").split("/")[0].trim() : tr("details.visibilityModerate"));
+
+  const windSpeed = Math.round(weather.current.windSpeed);
+  const windUnit = state.units === "imperial" ? "mph" : "km/h";
+  const windSpeedText = `${windSpeed} ${windUnit}`;
+  const windTitle = isFr ? "Vitesse du vent" : tr("details.wind");
+  const windLevel = isFr
+    ? (windSpeed < 10 ? "Calme" : windSpeed < 25 ? "Modéré" : "Fort")
+    : (windSpeed < 10 ? "Calm" : windSpeed < 25 ? "Moderate" : "Strong");
+  const windDir = compassPoint(weather.current.windDirection, "en");
+  const windRot = Number(weather.current.windDirection) || 0;
+  const windRad = ((windRot - 90) * Math.PI) / 180;
+  const ptrX = (80 + 34 * Math.cos(windRad)).toFixed(1);
+  const ptrY = (54 + 34 * Math.sin(windRad)).toFixed(1);
+  const lblX = (80 + 44 * Math.cos(windRad)).toFixed(1);
+  const lblY = (54 + 44 * Math.sin(windRad)).toFixed(1);
+
+  const humidity = Math.round(weather.current.humidity);
+  const humTitle = isFr ? "HUMIDITÉ" : escapeHtml(tr("details.humidity").toUpperCase());
+  const humLevelY = (84 - (humidity / 100) * 54).toFixed(1);
+
+  const pressureVal = localeNumber(weather.current.pressure, 1);
+  const pressureNum = Number(weather.current.pressure) || 1013;
+  const pPct = clamp((pressureNum - 975) / 65, 0, 1);
+  const pAngle = -140 + pPct * 280;
+  const pRad = ((pAngle - 90) * Math.PI) / 180;
+  const indX = (80 + 58 * Math.cos(pRad)).toFixed(1);
+  const indY = (80 + 58 * Math.sin(pRad)).toFixed(1);
+  const pTicks = Array.from({ length: 36 }, (_, i) => {
+    const a = ((i * 10 - 90) * Math.PI) / 180;
+    const isCardinal = i === 9 || i === 27;
+    const r = isCardinal ? 1.8 : 1.1;
+    const fill = isCardinal ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.18)";
+    const x = (80 + 58 * Math.cos(a)).toFixed(1);
+    const y = (80 + 58 * Math.sin(a)).toFixed(1);
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`;
+  }).join("");
+
+  const aqi = Math.round(weather.airQuality?.aqi ?? 22);
+  const aqiTitle = isFr ? "Qualité de l’air" : tr("air.title");
+  const aqiLabel = isFr
+    ? (aqi <= 20 ? "Excellente" : aqi <= 40 ? "Correct" : aqi <= 60 ? "Moyen" : "Mauvais")
+    : (weather.airQuality ? tr(`air.level.${aqiKey(weather.airQuality.level)}`) : tr("air.level.good"));
   const aqiCols = 8;
   const aqiRows = 5;
-  const activeCols = clamp(Math.ceil((aqi / 100) * aqiCols), 1, aqiCols);
+  const activeCols = clamp(Math.round((aqi / 100) * aqiCols), 1, aqiCols);
   const aqiDots = [];
   for (let r = 0; r < aqiRows; r += 1) {
     for (let c = 0; c < aqiCols; c += 1) {
       const active = c < activeCols;
       aqiDots.push(
-        `<circle cx="${16 + c * 21}" cy="${16 + r * 16}" r="${active ? 2.5 : 1.7}" fill="${
-          active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)"
+        `<circle cx="${18 + c * 17.5}" cy="${16 + r * 16}" r="${active ? 2.6 : 1.8}" fill="${
+          active ? "#ffffff" : "rgba(255,255,255,0.2)"
         }"/>`,
       );
     }
   }
 
-  const pressureTicks = Array.from({ length: 48 }, (_, i) => {
-    const a = (i * 360) / 48;
-    return `<line x1="100" y1="8" x2="100" y2="14" transform="rotate(${a} 100 100)" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`;
-  }).join("");
+  const sunTitle = isFr ? "Lever du soleil & Coucher de soleil" : tr("sun.title");
+  const daylight = formatDaylight(weather.sun.daylightSeconds, state.locale);
+  const daylightSub = isFr ? "Lumière du jour" : "Daylight";
+  const sunrise = formatHour(weather.sun.sunrise);
+  const sunset = formatHour(weather.sun.sunset);
+  const nowParts = localTimeParts(weather);
+  const nowMin = nowParts.minutes;
+  const sunriseMin = clockToMinutes(weather.sun.sunrise) ?? 360;
+  const sunsetMin = clockToMinutes(weather.sun.sunset) ?? 1080;
+  let sunX = 80;
+  let sunY = 22;
+  if (nowMin >= sunriseMin && nowMin <= sunsetMin) {
+    const p = (nowMin - sunriseMin) / Math.max(1, sunsetMin - sunriseMin);
+    sunX = (38 + p * 84).toFixed(1);
+    sunY = (46 - 24 * Math.sin(p * Math.PI)).toFixed(1);
+  } else {
+    if (nowMin > sunsetMin) {
+      const p = (nowMin - sunsetMin) / Math.max(1, 1440 - sunsetMin + sunriseMin);
+      sunX = clamp(122 + p * 30, 8, 152).toFixed(1);
+      sunY = clamp(46 + 16 * Math.sin(p * Math.PI), 46, 62).toFixed(1);
+    } else {
+      const p = (1440 - sunsetMin + nowMin) / Math.max(1, 1440 - sunsetMin + sunriseMin);
+      sunX = clamp(8 + (nowMin / Math.max(1, sunriseMin)) * 30, 8, 38).toFixed(1);
+      sunY = clamp(62 - 16 * (nowMin / Math.max(1, sunriseMin)), 46, 62).toFixed(1);
+    }
+  }
+
+  const apparentVal = Math.round(weather.current.apparent);
 
   return `<section class="card details-card details-card--nothing" aria-labelledby="details-title">
     <div class="nothing-widgets-grid">
-      <!-- White Circle: Feels Like (Sensación Corporal) -->
+      <!-- 1. White Circle: Sensation -->
       <article class="nothing-tile nothing-tile--white-circle">
-        <span class="nothing-circle-kicker">${escapeHtml(tr("common.feels").toUpperCase())}</span>
-        <div class="nothing-circle-matrix">
-          ${dotMatrixText(`${formatTempValue(weather.current.apparent, state.units, state.locale)}°`, {
-            dotSize: 4,
-            gap: 1.8,
-            color: "#0a0a0a",
-          })}
+        <span class="nothing-circle-kicker">${isFr ? "SENSATION" : escapeHtml(tr("common.feels").toUpperCase())}</span>
+        <div class="nothing-circle-val">
+          <span class="nothing-circle-num">${apparentVal}</span>
+          <svg class="nothing-deg-diamond" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+            <circle cx="5" cy="1.6" r="1.3" fill="#000000"/>
+            <circle cx="8.4" cy="5" r="1.3" fill="#000000"/>
+            <circle cx="5" cy="8.4" r="1.3" fill="#000000"/>
+            <circle cx="1.6" cy="5" r="1.3" fill="#000000"/>
+          </svg>
         </div>
       </article>
 
-      <!-- UV Index Wireframe 3D Domes -->
+      <!-- 2. UV Index Wireframe 3D Dome -->
       <article class="nothing-tile">
         <div class="nothing-tile-head">
-          <span class="nothing-tile-title">${escapeHtml(tr("details.uv"))}</span>
+          <span class="nothing-tile-title">${escapeHtml(uvTitle)}</span>
           <span class="nothing-tile-sub">${String(uv).padStart(2, "0")} · ${escapeHtml(uvCat)}</span>
         </div>
-        <svg class="nothing-wire-svg" viewBox="0 0 180 110" aria-hidden="true">
-          <ellipse cx="90" cy="86" rx="44" ry="12" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
-          <ellipse cx="90" cy="76" rx="44" ry="12" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
-          <ellipse cx="90" cy="66" rx="44" ry="12" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
-          <path d="M46 86 A44 42 0 0 1 134 86" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+        <svg class="nothing-wire-svg nothing-wire-svg--dome" viewBox="0 0 160 100" aria-hidden="true">
+          <ellipse cx="80" cy="86" rx="54" ry="14" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"/>
+          <ellipse cx="80" cy="74" rx="50" ry="12" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+          <ellipse cx="80" cy="62" rx="42" ry="10" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+          <ellipse cx="80" cy="48" rx="30" ry="7" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+          <path d="M 26 86 C 26 34, 134 34, 134 86" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
         </svg>
       </article>
 
-      <!-- Air Quality Dot Matrix Tile -->
+      <!-- 3. Air Quality 8x5 Dot Matrix Grid -->
       <article class="nothing-tile">
         <div class="nothing-tile-head">
-          <span class="nothing-tile-title">${escapeHtml(tr("air.title"))}</span>
-          <span class="nothing-tile-sub">${Math.round(aqi)} · ${escapeHtml(aqiLabel)}</span>
+          <span class="nothing-tile-title">${escapeHtml(aqiTitle)}</span>
+          <span class="nothing-tile-sub">${aqi} · ${escapeHtml(aqiLabel)}</span>
         </div>
-        <svg class="nothing-wire-svg" viewBox="0 0 180 92" aria-hidden="true">
+        <svg class="nothing-wire-svg nothing-wire-svg--aqi" viewBox="0 0 160 92" aria-hidden="true">
           ${aqiDots.join("")}
         </svg>
       </article>
 
-      <!-- Visibility Radar Sector Tile -->
+      <!-- 4. Visibility Radar Cone -->
       <article class="nothing-tile">
         <div class="nothing-tile-head">
-          <span class="nothing-tile-title">${escapeHtml(tr("details.visibility"))}</span>
-          <span class="nothing-tile-sub">${escapeHtml(visVal)} · ${escapeHtml(visLabel)}</span>
+          <span class="nothing-tile-title">${escapeHtml(visTitle)}</span>
+          <span class="nothing-tile-sub">${visKm} · ${escapeHtml(visLabel)}</span>
         </div>
-        <svg class="nothing-wire-svg" viewBox="0 0 180 100" aria-hidden="true">
-          <line x1="20" y1="68" x2="156" y2="28" stroke="#f5f5f5" stroke-width="1.2"/>
-          <line x1="20" y1="68" x2="156" y2="82" stroke="#f5f5f5" stroke-width="1.2"/>
-          <path d="M 118 39 A 95 95 0 0 1 118 78" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
-          <path d="M 142 32 A 122 122 0 0 1 142 80" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/>
+        <svg class="nothing-wire-svg nothing-wire-svg--vis" viewBox="0 0 160 94" aria-hidden="true">
+          <line x1="20" y1="58" x2="142" y2="22" stroke="#ffffff" stroke-width="1.2"/>
+          <line x1="20" y1="58" x2="142" y2="78" stroke="#ffffff" stroke-width="1.2"/>
+          <path d="M 142 22 A 110 110 0 0 1 142 78" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.2" stroke-dasharray="2 2.5"/>
         </svg>
       </article>
 
-      <!-- Wind Speed Circle with Red Pointer -->
+      <!-- 5. Wind Speed Circle with Red Direction Pointer -->
       <article class="nothing-tile">
         <div class="nothing-tile-head">
-          <span class="nothing-tile-title">${escapeHtml(tr("details.wind"))}</span>
-          <span class="nothing-tile-sub">${escapeHtml(windVal)}</span>
+          <span class="nothing-tile-title">${escapeHtml(windTitle)}</span>
+          <span class="nothing-tile-sub">${windSpeedText} · ${escapeHtml(windLevel)}</span>
         </div>
-        <svg class="nothing-wire-svg" viewBox="0 0 180 112" aria-hidden="true">
-          <circle cx="90" cy="54" r="36" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/>
-          <g transform="rotate(${windRot.toFixed(1)} 90 54)">
-            <line x1="90" y1="54" x2="90" y2="18" stroke="#ff281e" stroke-width="1.8"/>
-            <circle cx="90" cy="18" r="2.6" fill="#ff281e"/>
-          </g>
-          <text x="90" y="104" text-anchor="middle" fill="#ff281e" font-size="9" font-family="monospace">${escapeHtml(windDir)}</text>
+        <svg class="nothing-wire-svg nothing-wire-svg--wind" viewBox="0 0 160 106" aria-hidden="true">
+          <circle cx="80" cy="54" r="34" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"/>
+          <line x1="80" y1="54" x2="${ptrX}" y2="${ptrY}" stroke="#d71920" stroke-width="2"/>
+          <text x="${lblX}" y="${lblY}" text-anchor="middle" dominant-baseline="central" fill="#d71920" font-size="10" font-weight="700" font-family="var(--font-ui)">${escapeHtml(windDir)}</text>
         </svg>
       </article>
 
-      <!-- Humidity 3D Wireframe Cylinder -->
+      <!-- 6. Humidity 3D Wireframe Cylinder -->
       <article class="nothing-tile">
         <div class="nothing-tile-head">
-          <span class="nothing-tile-title">${escapeHtml(tr("details.humidity").toUpperCase())}</span>
-          <span class="nothing-tile-sub">${humidity}%</span>
+          <span class="nothing-tile-title">${escapeHtml(humTitle)}</span>
+          <span class="nothing-tile-sub">${humidity} %</span>
         </div>
-        <svg class="nothing-wire-svg" viewBox="0 0 180 112" aria-hidden="true">
-          <ellipse cx="90" cy="30" rx="38" ry="10" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
-          <line x1="52" y1="30" x2="52" y2="82" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
-          <line x1="128" y1="30" x2="128" y2="82" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
-          <ellipse cx="90" cy="${cylY}" rx="38" ry="10" fill="rgba(255,255,255,0.06)" stroke="#ffffff" stroke-width="1.2"/>
-          <ellipse cx="90" cy="82" rx="38" ry="10" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2"/>
+        <svg class="nothing-wire-svg nothing-wire-svg--hum" viewBox="0 0 160 106" aria-hidden="true">
+          <ellipse cx="80" cy="30" rx="34" ry="9" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+          <line x1="46" y1="30" x2="46" y2="84" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+          <line x1="114" y1="30" x2="114" y2="84" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+          <ellipse cx="80" cy="${humLevelY}" rx="34" ry="9" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.5)" stroke-width="1.1"/>
+          <ellipse cx="80" cy="84" rx="34" ry="9" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
         </svg>
       </article>
 
-      <!-- Dark Circle: Pressure Dot-Matrix Dial -->
-      <article class="nothing-tile nothing-tile--dark-circle">
-        <svg class="nothing-dial-svg" viewBox="0 0 200 200" aria-hidden="true">
-          ${pressureTicks}
-          <g transform="rotate(${pressureAngle.toFixed(1)} 100 100)">
-            <circle cx="100" cy="24" r="6" fill="#ffffff"/>
-          </g>
+      <!-- 7. Pressure Dark Circular Dial -->
+      <article class="nothing-tile nothing-tile--pressure">
+        <svg class="nothing-dial-svg" viewBox="0 0 160 160" aria-hidden="true">
+          ${pTicks}
+          <circle cx="${indX}" cy="${indY}" r="7" fill="#ffffff"/>
         </svg>
-        <div class="nothing-dial-center">
-          ${dotMatrixText(pressureVal, { dotSize: 2.5, gap: 1.2, color: "#ffffff" })}
-          <small>${escapeHtml(pressureUnit)}</small>
+        <div class="nothing-pressure-content">
+          <span class="nothing-pressure-val">${pressureVal}</span>
+          <span class="nothing-pressure-unit">mbar</span>
         </div>
       </article>
 
-      <!-- Sunrise & Sunset Sine Wave Tile -->
-      <article class="nothing-tile">
+      <!-- 8. Sunrise & Sunset Horizon Sine Wave -->
+      <article class="nothing-tile nothing-tile--sun">
         <div class="nothing-tile-head">
-          <span class="nothing-tile-title">${escapeHtml(tr("sun.title"))}</span>
-          <span class="nothing-tile-sub">${escapeHtml(daylight)}</span>
+          <span class="nothing-tile-title">${escapeHtml(sunTitle)}</span>
+          <span class="nothing-tile-sub">${escapeHtml(daylight)} · ${escapeHtml(daylightSub)}</span>
         </div>
-        <svg class="nothing-wire-svg" viewBox="0 0 180 108" aria-hidden="true">
-          <line x1="12" y1="60" x2="168" y2="60" stroke="rgba(255,255,255,0.22)" stroke-dasharray="3 3" stroke-width="1"/>
-          <path d="M 12 82 C 48 82, 62 28, 96 28 C 130 28, 144 82, 168 82" fill="none" stroke="#ffffff" stroke-width="1.4"/>
-          <circle cx="96" cy="28" r="4" fill="#ff281e"/>
-          <text x="16" y="98" fill="rgba(255,255,255,0.55)" font-size="9" font-family="monospace">${escapeHtml(sunrise)}</text>
+        <svg class="nothing-wire-svg nothing-wire-svg--sun" viewBox="0 0 160 84" aria-hidden="true">
+          <line x1="8" y1="46" x2="152" y2="46" stroke="rgba(255,255,255,0.25)" stroke-dasharray="2 3" stroke-width="1"/>
+          <path d="M 8 62 C 42 62, 54 22, 80 22 C 106 22, 118 62, 152 62" fill="none" stroke="#ffffff" stroke-width="1.3"/>
+          <circle cx="${sunX}" cy="${sunY}" r="3.5" fill="#d71920" class="nothing-sun-dot"/>
+          <text x="10" y="78" fill="#8e8e93" font-size="9" font-family="var(--font-ui)">${escapeHtml(sunrise)}</text>
+          <text x="150" y="78" text-anchor="end" fill="#8e8e93" font-size="9" font-family="var(--font-ui)">${escapeHtml(sunset)}</text>
         </svg>
       </article>
     </div>
@@ -2704,11 +2816,15 @@ function sunMarkup(weather) {
       )}</b></div>
     </div>
     <div class="moon-row">
-      <span class="moon-visual">${moonIcon(
-        weather.sun.moon.phase,
-        weather.sun.moon.illumination,
-        56,
-      )}</span>
+      <span class="moon-visual">${
+        state.theme === "nothing"
+          ? nothingMoonDotGlyph(weather.sun.moon.nameKey, 56, tr("sun.moon"))
+          : moonIcon(
+              weather.sun.moon.phase,
+              weather.sun.moon.illumination,
+              56,
+            )
+      }</span>
       <div class="moon-copy"><span class="moon-kicker">${escapeHtml(tr("sun.moon"))}</span><strong>${escapeHtml(
         tr(`sun.phase.${weather.sun.moon.nameKey}`),
       )}</strong><small>${escapeHtml(
@@ -2839,6 +2955,15 @@ function nowcastMarkup(weather) {
 }
 
 function footerMarkup() {
+  if (state.theme === "nothing") {
+    const text = state.locale === "fr"
+      ? "DONNÉES MÉTÉOROLOGIQUES FOURNIES PAR OPEN-METEO & IRM"
+      : "WEATHER DATA PROVIDED BY OPEN-METEO & IRM";
+    return `<footer class="page-end page-end--nothing">
+      <p class="nothing-provider-credit">${escapeHtml(text)}</p>
+    </footer>`;
+  }
+
   return `<footer class="page-end">
     <button class="button button--ghost page-end-data-btn" data-action="open-data">
       ${uiIcon("database", 17)}
@@ -2859,6 +2984,40 @@ function renderApp(options = {}) {
   const weather = state.weather;
   const group = weatherGroup(weather.current.code);
   document.title = `${displayName(state.place)} — DFWMeteo`;
+
+  const isNothing = state.theme === "nothing";
+  const dashboardContent = isNothing
+    ? `${hourlyMarkup(weather)}
+       ${dailyMarkup(weather)}
+       ${detailsMarkup(weather)}
+       ${precipMapMarkup(weather, {
+         tr,
+         units: state.units,
+         locale: state.locale,
+         theme: state.theme,
+         placeName: displayName(state.place),
+         radarSource: state.radarSource,
+       })}
+       ${modelsMarkup(weather)}
+       ${nowcastMarkup(weather)}
+       ${briefMarkup(weather)}`
+    : `${briefMarkup(weather)}
+       ${modelsMarkup(weather)}
+       ${hourlyMarkup(weather)}
+       ${dailyMarkup(weather)}
+       ${sunMarkup(weather)}
+       ${precipMapMarkup(weather, {
+         tr,
+         units: state.units,
+         locale: state.locale,
+         theme: state.theme,
+         placeName: displayName(state.place),
+         radarSource: state.radarSource,
+       })}
+       ${airMarkup(weather)}
+       ${nowcastMarkup(weather)}
+       ${detailsMarkup(weather)}`;
+
   app.innerHTML = `${headerMarkup()}
     ${state.cached || weather.meta.mode === "cache" ? dataBannerMarkup(weather) : ""}
     <main id="main" class="shell">
@@ -2866,22 +3025,7 @@ function renderApp(options = {}) {
       ${heroMarkup(weather)}
       ${advisoryMarkup(weather)}
       <div class="dashboard">
-        ${briefMarkup(weather)}
-        ${modelsMarkup(weather)}
-        ${hourlyMarkup(weather)}
-        ${dailyMarkup(weather)}
-        ${sunMarkup(weather)}
-        ${precipMapMarkup(weather, {
-          tr,
-          units: state.units,
-          locale: state.locale,
-          theme: state.theme,
-          placeName: displayName(state.place),
-          radarSource: state.radarSource,
-        })}
-        ${airMarkup(weather)}
-        ${nowcastMarkup(weather)}
-        ${detailsMarkup(weather)}
+        ${dashboardContent}
       </div>
       ${footerMarkup()}
     </main>`;
@@ -4115,13 +4259,17 @@ function dayModalContent(payload) {
       </div>
     </div>
     <div class="day-hero">
-      <div class="day-hero-glyph">${weatherGlyph(
-        day.code,
-        true,
-        "lg",
-        "",
-        dayCondition(day),
-      )}</div>
+      <div class="day-hero-glyph">${
+        state.theme === "nothing"
+          ? nothingWeatherDotGlyph(day.code, true, 80, dayCondition(day))
+          : weatherGlyph(
+              day.code,
+              true,
+              "lg",
+              "",
+              dayCondition(day),
+            )
+      }</div>
       <div class="day-hero-copy">
         <span class="subtle-pill">${escapeHtml(dayCondition(day))}</span>
         <div class="day-hero-temps"><strong>${escapeHtml(
@@ -4351,7 +4499,53 @@ function updateLiveLabels() {
     element.textContent = state.refreshing ? tr("common.updating") : updatedLabel(state.weather);
     element.classList.toggle("is-updating", state.refreshing);
   });
+
   const currentMinute = localTimeParts(state.weather).minutes;
+
+  // Live update the Sun & Moon card arc and countdown
+  const sunCard = document.querySelector(".sun-card");
+  if (sunCard) {
+    const sunriseMin = clockToMinutes(state.weather.sun.sunrise);
+    const sunsetMin = clockToMinutes(state.weather.sun.sunset);
+    const isDayNow = currentMinute >= (sunriseMin ?? 0) && currentMinute < (sunsetMin ?? 1440);
+    const nextTarget = isDayNow ? sunsetMin : clockToMinutes(state.weather.daily[1]?.sunrise || state.weather.sun.sunrise);
+    const countdown = nextTarget != null ? formatDurationFromNow(currentMinute, nextTarget) : "—";
+    const pill = sunCard.querySelector(".card-head .subtle-pill");
+    if (pill) {
+      pill.textContent = isDayNow
+        ? tr("sun.untilSunset", { time: countdown })
+        : tr("sun.untilSunrise", { time: countdown });
+    }
+    const arcWrap = sunCard.querySelector(".sun-arc-wrap");
+    if (arcWrap) {
+      arcWrap.outerHTML = sunArc({
+        sunrise: state.weather.sun.sunrise,
+        sunset: state.weather.sun.sunset,
+        nowMinutes: currentMinute,
+        isDay: isDayNow,
+        locale: state.locale,
+        translate: tr,
+      });
+    }
+  }
+
+  // Live update Nothing sun tile dot
+  const nothingSunTile = document.querySelector(".nothing-tile--sun");
+  if (nothingSunTile) {
+    const sunriseMin = clockToMinutes(state.weather.sun.sunrise) ?? 360;
+    const sunsetMin = clockToMinutes(state.weather.sun.sunset) ?? 1080;
+    const solarNoonMin = sunriseMin + (sunsetMin - sunriseMin) / 2;
+    const angle = ((currentMinute - solarNoonMin) / 720) * Math.PI;
+    const progress24 = (currentMinute % 1440) / 1440;
+    const sunX = (12 + progress24 * 156).toFixed(1);
+    const sunY = (55 - 27 * Math.cos(angle)).toFixed(1);
+    const dot = nothingSunTile.querySelector(".nothing-sun-dot");
+    if (dot) {
+      dot.setAttribute("cx", sunX);
+      dot.setAttribute("cy", sunY);
+    }
+  }
+
   if (
     state.lastRenderedMinute != null &&
     Math.floor(currentMinute / 60) !== Math.floor(state.lastRenderedMinute / 60)
@@ -4627,6 +4821,11 @@ function handleAction(event) {
       break;
     case "toggle-brief":
       state.briefExpanded = !state.briefExpanded;
+      renderApp();
+      break;
+    case "toggle-nothing-days":
+      event.preventDefault();
+      state.nothingDaysExpanded = !state.nothingDaysExpanded;
       renderApp();
       break;
     case "select-day":
