@@ -1,4 +1,4 @@
-const CACHE_NAME = "dfwmeteo-v5";
+const CACHE_NAME = "dfwmeteo-v7";
 const STATIC_ASSETS = [
   "./",
   "./index.html",

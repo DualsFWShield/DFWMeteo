@@ -60,6 +60,14 @@ const UI_PATHS = {
   flag: '<path d="M5 21V4.5M5 4.5c4-2.2 7 2.2 11 0v8c-4 2.2-7-2.2-11 0"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l.8 13h10.4L18 7M10 11v5M14 11v5"/>',
   dot: '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
+  map: '<path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z"/><path d="M9 4v14M15 6v14"/>',
+  share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.3 10.8 7.4-4.6M8.3 13.2l7.4 4.6"/>',
+  snowflake: '<path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1M12 5 9.5 2.5M12 5l2.5-2.5M12 19l-2.5 2.5M12 19l2.5 2.5"/>',
+  zap: '<path d="M13 2 4 14h7l-1 8 10-12h-7l0-8Z"/>',
+  shield: '<path d="M12 3 4 6.5v5.8c0 5 3.4 8.2 8 9.7 4.6-1.5 8-4.7 8-9.7V6.5L12 3Z"/><path d="M12 8v4M12 15.5v.2"/>',
+  bike: '<circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm-3 11.5V14l-3-3 4-3 2 3h2"/>',
+  shirt: '<path d="M15 3.5c-.8 1.2-1.8 1.8-3 1.8S9.8 4.7 9 3.5L4 6l2 4 2-1v11h8V9l2 1 2-4-5-2.5Z"/>',
+  car: '<path d="M5 17H3v-5l2-5h14l2 5v5h-2m-12 0a2 2 0 1 0 4 0m4 0a2 2 0 1 0 4 0m-8 0h4M5 12h14"/>',
 };
 
 export function uiIcon(name, size = 20, className = "") {
@@ -71,7 +79,7 @@ let glyphId = 0;
 
 function sun({ cx = 60, cy = 55, r = 23, rays = true, opacity = 1 } = {}) {
   const rayMarkup = rays
-    ? `<g stroke="#f4cf86" stroke-width="2.3" stroke-linecap="round" opacity=".72">
+    ? `<g class="wx-sun-rays" style="transform-origin:${cx}px ${cy}px" stroke="#f4cf86" stroke-width="2.3" stroke-linecap="round" opacity=".72">
         <path d="M${cx} ${cy - r - 7}v-7"/>
         <path d="M${cx} ${cy + r + 7}v7"/>
         <path d="M${cx - r - 7} ${cy}h-7"/>
@@ -83,13 +91,13 @@ function sun({ cx = 60, cy = 55, r = 23, rays = true, opacity = 1 } = {}) {
       </g>`
     : "";
   return `${rayMarkup}
-    <circle cx="${cx}" cy="${cy}" r="${r + 15}" fill="url(#wx-sun-glow)" opacity="${0.7 * opacity}"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#wx-sun)"/>`;
+    <circle class="wx-sun-glow" style="transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r + 15}" fill="url(#wx-sun-glow)" opacity="${0.7 * opacity}"/>
+    <circle class="wx-sun-core" style="transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r}" fill="url(#wx-sun)"/>`;
 }
 
 function moon({ cx = 64, cy = 53, r = 22, mask = true } = {}) {
   if (!mask) {
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#wx-moon)"/>`;
+    return `<circle class="wx-moon-body" style="transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r}" fill="url(#wx-moon)"/>`;
   }
   const id = `moon-${++glyphId}`;
   return `<mask id="${id}">
@@ -97,12 +105,12 @@ function moon({ cx = 64, cy = 53, r = 22, mask = true } = {}) {
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="white"/>
       <circle cx="${cx + r * 0.62}" cy="${cy - r * 0.22}" r="${r * 0.93}" fill="black"/>
     </mask>
-    <circle cx="${cx}" cy="${cy}" r="${r + 13}" fill="#dce7f9" opacity=".08"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#wx-moon)" mask="url(#${id})"/>
-    <g fill="#f4f0df">
-      <circle cx="34" cy="30" r="1.4" opacity=".8"/>
-      <circle cx="88" cy="82" r="1.1" opacity=".55"/>
-      <circle cx="81" cy="26" r=".9" opacity=".7"/>
+    <circle class="wx-moon-glow" style="transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r + 13}" fill="#dce7f9" opacity=".08"/>
+    <circle class="wx-moon-body" style="transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r}" fill="url(#wx-moon)" mask="url(#${id})"/>
+    <g class="wx-moon-stars" fill="#f4f0df">
+      <circle class="wx-moon-star" style="--star-delay:0s;transform-origin:34px 30px" cx="34" cy="30" r="1.4" opacity=".8"/>
+      <circle class="wx-moon-star" style="--star-delay:1.1s;transform-origin:88px 82px" cx="88" cy="82" r="1.1" opacity=".55"/>
+      <circle class="wx-moon-star" style="--star-delay:2.2s;transform-origin:81px 26px" cx="81" cy="26" r=".9" opacity=".7"/>
     </g>`;
 }
 
@@ -111,42 +119,50 @@ function cloudPath(fill = "url(#wx-cloud)", transform = "", opacity = 1) {
 }
 
 function cloud({ back = false, transform = "", opacity = 1 } = {}) {
-  return `${back ? cloudPath("url(#wx-cloud-back)", "translate(15 -7) scale(.88)", 0.58) : ""}
-    ${cloudPath("url(#wx-cloud)", transform, opacity)}
-    <path d="M43 65.5c2.3-8.4 9.8-14.2 18.7-14.2 7.4 0 13.9 4.1 17 10.3" stroke="rgba(255,255,255,.58)" stroke-width="2.2" stroke-linecap="round" fill="none"/>`;
+  return `${back ? `<g class="wx-cloud-back">${cloudPath("url(#wx-cloud-back)", "translate(15 -7) scale(.88)", 0.58)}</g>` : ""}
+    <g class="wx-cloud-front">
+      ${cloudPath("url(#wx-cloud)", transform, opacity)}
+      <path d="M43 65.5c2.3-8.4 9.8-14.2 18.7-14.2 7.4 0 13.9 4.1 17 10.3" stroke="rgba(255,255,255,.58)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    </g>`;
 }
 
 function rainDrops({ count = 4, heavy = false } = {}) {
   const xs = count === 3 ? [44, 59, 74] : [40, 55, 70, 84];
-  return `<g stroke="url(#wx-rain)" stroke-linecap="round">
+  return `<g class="wx-rain-drops" stroke="url(#wx-rain)" stroke-linecap="round">
     ${xs
       .map(
         (x, index) =>
-          `<path d="M${x} ${heavy ? 91 : 92}l-${heavy ? 4 : 3} ${heavy ? 14 : 8 + (index % 2) * 3}" stroke-width="${heavy ? 3.8 : 3.1}"/>`,
+          `<path class="wx-rain-drop" style="--drop-delay:${(index * 0.32).toFixed(2)}s" d="M${x} ${heavy ? 91 : 92}l-${heavy ? 4 : 3} ${heavy ? 14 : 8 + (index % 2) * 3}" stroke-width="${heavy ? 3.8 : 3.1}"/>`,
       )
       .join("")}
   </g>
-  <g fill="#b6d8ff" opacity=".6">
-    <circle cx="35" cy="108" r="1.1"/><circle cx="53" cy="110" r=".9"/>
-    <circle cx="72" cy="108" r="1.1"/><circle cx="89" cy="105" r=".8"/>
+  <g class="wx-rain-splashes" fill="#b6d8ff" opacity=".6">
+    <circle class="wx-rain-splash" style="--drop-delay:0.15s" cx="35" cy="108" r="1.1"/>
+    <circle class="wx-rain-splash" style="--drop-delay:0.47s" cx="53" cy="110" r=".9"/>
+    <circle class="wx-rain-splash" style="--drop-delay:0.79s" cx="72" cy="108" r="1.1"/>
+    <circle class="wx-rain-splash" style="--drop-delay:1.11s" cx="89" cy="105" r=".8"/>
   </g>`;
 }
 
 function snowflakes() {
-  const flake = (x, y, scale = 1) =>
-    `<g transform="translate(${x} ${y}) scale(${scale})" stroke="#d8e8fb" stroke-width="1.8" stroke-linecap="round">
-      <path d="M0-6V6M-5.2-3 5.2 3M-5.2 3 5.2-3"/>
+  const flake = (x, y, scale = 1, delay = 0) =>
+    `<g class="wx-snowflake-item" style="--flake-delay:${delay}s;transform-origin:${x}px ${y}px">
+      <g transform="translate(${x} ${y}) scale(${scale})" stroke="#d8e8fb" stroke-width="1.8" stroke-linecap="round">
+        <path d="M0-6V6M-5.2-3 5.2 3M-5.2 3 5.2-3"/>
+      </g>
     </g>`;
-  return `${flake(42, 100)}${flake(60, 107, 1.15)}${flake(80, 99, 0.9)}`;
+  return `${flake(42, 100, 1, 0)}${flake(60, 107, 1.15, 0.7)}${flake(80, 99, 0.9, 1.4)}`;
 }
 
 function bolt() {
-  return `<path d="M62 82 50 102h9l-5 15 20-25h-10l7-10Z" fill="url(#wx-bolt)" stroke="#f8cf7a" stroke-width="1.2" stroke-linejoin="round"/>`;
+  return `<path class="wx-bolt-path" style="transform-origin:60px 100px" d="M62 82 50 102h9l-5 15 20-25h-10l7-10Z" fill="url(#wx-bolt)" stroke="#f8cf7a" stroke-width="1.2" stroke-linejoin="round"/>`;
 }
 
 function fogLines() {
-  return `<g stroke="#b9cbe2" stroke-width="3" stroke-linecap="round" opacity=".52">
-    <path d="M31 94h44"/><path d="M46 103h43"/><path d="M28 112h34"/>
+  return `<g class="wx-fog-lines" stroke="#b9cbe2" stroke-width="3" stroke-linecap="round" opacity=".52">
+    <path class="wx-fog-line" style="--fog-delay:0s;--fog-dir:1" d="M31 94h44"/>
+    <path class="wx-fog-line" style="--fog-delay:0.9s;--fog-dir:-1" d="M46 103h43"/>
+    <path class="wx-fog-line" style="--fog-delay:1.8s;--fog-dir:1" d="M28 112h34"/>
   </g>`;
 }
 
@@ -203,8 +219,10 @@ export function weatherGlyph(code, isDay, size = "md", className = "", label = "
     art = `${cloud({ transform: "translate(0 -6) scale(.98)" })}${fogLines()}`;
   } else if (group === "drizzle") {
     art = `${cloud({ transform: "translate(0 -5)" })}
-      <g stroke="url(#wx-rain)" stroke-width="2.6" stroke-linecap="round" opacity=".9">
-        <path d="m42 92-2 6M58 92l-2 8M74 92l-2 6"/>
+      <g class="wx-rain-drops" stroke="url(#wx-rain)" stroke-width="2.6" stroke-linecap="round" opacity=".9">
+        <path class="wx-rain-drop" style="--drop-delay:0s" d="m42 92-2 6"/>
+        <path class="wx-rain-drop" style="--drop-delay:0.4s" d="M58 92l-2 8"/>
+        <path class="wx-rain-drop" style="--drop-delay:0.8s" d="M74 92l-2 6"/>
       </g>`;
   } else if (group === "rain") {
     art = `${cloud({ back: true, transform: "translate(1 -4)" })}${cloud({ transform: "translate(0 -5)" })}${rainDrops({
@@ -297,13 +315,14 @@ export function modelGlyph(size = 18) {
 
 export function advisoryIcon(type, size = 18) {
   const names = {
+    official: "shield",
     wind: "wind",
     rain: "umbrella",
     uv: "sun",
     heat: "thermometer",
-    cold: "thermometer",
-    ice: "alert",
-    thunder: "alert",
+    cold: "snowflake",
+    ice: "snowflake",
+    thunder: "zap",
     air: "leaf",
   };
   return uiIcon(names[type] ?? "alert", size);
@@ -492,20 +511,63 @@ export function nothingWeatherDotGlyph(code, isDay = true, size = 160, label = "
   const cols = grid[0].length;
   const step = 10;
   const r = 4.1;
-  const dots = [];
+
+  const activeCells = [];
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < cols; x += 1) {
-      if (grid[y][x] === "1") {
-        const isBolt = key === "thunder" && y >= 6;
-        dots.push(
-          `<circle cx="${x * step + 5}" cy="${y * step + 5}" r="${r}" fill="${isBolt ? "#ff281e" : "#f5f5f5"}" />`,
-        );
-      }
+      if (grid[y][x] === "1") activeCells.push({ x, y });
     }
   }
+
+  const centerX = activeCells.length
+    ? activeCells.reduce((sum, cell) => sum + cell.x, 0) / activeCells.length
+    : (cols - 1) / 2;
+  const centerY = activeCells.length
+    ? activeCells.reduce((sum, cell) => sum + cell.y, 0) / activeCells.length
+    : (rows - 1) / 2;
+  const maxDist = Math.max(
+    1,
+    ...activeCells.map((cell) => Math.hypot(cell.x - centerX, cell.y - centerY)),
+  );
+
+  const dots = activeCells.map(({ x, y }) => {
+    const cx = x * step + 5;
+    const cy = y * step + 5;
+    const dist = Math.hypot(x - centerX, y - centerY);
+    const normDist = dist / maxDist;
+    const enterDelay = Math.round(normDist * 460);
+    const fromX = ((centerX - x) * step * 0.52).toFixed(1);
+    const fromY = ((centerY - y) * step * 0.52).toFixed(1);
+    const isBolt = key === "thunder" && y >= 6;
+    const isDrop = (key === "rain" || key === "snow") && y >= 7;
+    const isRay =
+      (key === "clearDay" && dist > 4.1) ||
+      (key === "clearNight" && x >= 11) ||
+      (key === "partly" && y <= 2 && x <= 10);
+    const isFogBand = key === "fog" && y >= 5;
+
+    let roleClass = "ndot-cell--core";
+    let pulseDelay = Math.round(normDist * 1200 + ((x + y) % 4) * 140);
+    if (isBolt) {
+      roleClass = "ndot-cell--bolt";
+      pulseDelay = (y - 6) * 110;
+    } else if (isDrop) {
+      roleClass = key === "snow" ? "ndot-cell--flake" : "ndot-cell--drop";
+      pulseDelay = (y - 7) * 240 + (x % 4) * 110;
+    } else if (isRay) {
+      roleClass = "ndot-cell--ray";
+      pulseDelay = ((x * 3 + y * 5) % 8) * 180;
+    } else if (isFogBand) {
+      roleClass = "ndot-cell--fog";
+      pulseDelay = y * 150 + x * 45;
+    }
+
+    return `<circle class="ndot-cell ${roleClass}" style="--enter-delay:${enterDelay}ms;--pulse-delay:${pulseDelay}ms;--from-x:${fromX}px;--from-y:${fromY}px;transform-origin:${cx}px ${cy}px" cx="${cx}" cy="${cy}" r="${r}" fill="${isBolt ? "#ff281e" : "#f5f5f5"}" />`;
+  });
+
   const w = cols * step;
   const h = rows * step;
-  return `<svg class="nothing-dot-wx" width="${size}" height="${Math.round((size * h) / w)}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${dots.join("")}</svg>`;
+  return `<svg class="nothing-dot-wx nothing-dot-wx--${key}" width="${size}" height="${Math.round((size * h) / w)}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}">${dots.join("")}</svg>`;
 }
 
 export function pixelScallopPath(cx = 100, cy = 100, outerR = 92, innerR = 81, lobes = 12) {

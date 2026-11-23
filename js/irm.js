@@ -411,9 +411,19 @@ export class IrmKmiApiClientHa extends IrmKmiApiClient {
   _getNowHourly() {
     const hourly = this._apiData?.for?.hourly;
     if (!Array.isArray(hourly) || hourly.length === 0) return null;
-    const currentHour = String(new Date().getHours()).padStart(2, '0');
+    let currentHour;
+    try {
+      currentHour = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Brussels",
+        hour: "2-digit",
+        hourCycle: "h23",
+      }).format(new Date());
+      if (currentHour === "24") currentHour = "00";
+    } catch {
+      currentHour = String(new Date().getHours()).padStart(2, "0");
+    }
     for (const item of hourly.slice(0, 4)) {
-      if (String(item.hour).padStart(2, '0') === currentHour) {
+      if (String(item.hour).padStart(2, "0") === currentHour) {
         return item;
       }
     }
@@ -615,7 +625,13 @@ export class IrmKmiApiClientHa extends IrmKmiApiClient {
 export class RainGraphGenerator {
   static buildSvg(animData, { theme = "aurora", lang = "fr" } = {}) {
     if (!animData || !animData.sequence || animData.sequence.length === 0) {
-      return `<div class="empty-copy"><p>Aucune donnée radar IRM disponible pour cette position.</p></div>`;
+      const emptyMsg =
+        lang === "nl"
+          ? "Geen KMI-radargegevens beschikbaar voor deze locatie."
+          : lang === "en"
+            ? "No IRM radar data available for this location."
+            : "Aucune donnée radar IRM disponible pour cette position.";
+      return `<div class="empty-copy"><p>${emptyMsg}</p></div>`;
     }
 
     const width = 640;

@@ -1,7 +1,7 @@
 {
   "name": "DFWMeteo — Weather, resolved",
   "short_name": "DFWMeteo",
-  "description": "Eight independent weather models. One confident forecast. Calibrated for Belgium and ready worldwide.",
+  "description": "Twelve independent weather models. One confident forecast. Calibrated for Belgium and ready worldwide.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

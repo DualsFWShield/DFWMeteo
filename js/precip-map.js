@@ -167,10 +167,14 @@ function rainColor(value) {
   return RAIN_STOPS[RAIN_STOPS.length - 1][1];
 }
 
+let sharedOffscreenCanvas = null;
+
 function drawRain(canvas, width, height, data, frame, center, zoom) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.max(1, Math.round(width * dpr));
-  canvas.height = Math.max(1, Math.round(height * dpr));
+  const targetW = Math.max(1, Math.round(width * dpr));
+  const targetH = Math.max(1, Math.round(height * dpr));
+  if (canvas.width !== targetW) canvas.width = targetW;
+  if (canvas.height !== targetH) canvas.height = targetH;
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
   const context = canvas.getContext("2d");
@@ -199,9 +203,12 @@ function drawRain(canvas, width, height, data, frame, center, zoom) {
   const drawHeight = southEast.y - northWest.y;
   if (drawWidth <= 0 || drawHeight <= 0) return;
 
-  const offscreen = document.createElement("canvas");
-  offscreen.width = data.cols;
-  offscreen.height = data.rows;
+  if (!sharedOffscreenCanvas) {
+    sharedOffscreenCanvas = document.createElement("canvas");
+  }
+  const offscreen = sharedOffscreenCanvas;
+  if (offscreen.width !== data.cols) offscreen.width = data.cols;
+  if (offscreen.height !== data.rows) offscreen.height = data.rows;
   const offscreenContext = offscreen.getContext("2d");
   if (!offscreenContext) return;
   const image = offscreenContext.createImageData(data.cols, data.rows);

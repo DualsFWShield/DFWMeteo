@@ -85,10 +85,20 @@ export function modelSpreadChart({
       unit: units === "imperial" ? "mph" : "km/h",
       aria: translate("hourly.windUnit"),
       value: (source, index) =>
-        source.hourlyWind[index] == null ? null : tempValue(source.hourlyWind[index], units),
-      consensus: (point) => tempValue(point.windSpeed, units),
+        source.hourlyWind[index] == null
+          ? null
+          : units === "imperial"
+            ? Number(source.hourlyWind[index]) * 0.621371
+            : Number(source.hourlyWind[index]),
+      consensus: (point) =>
+        point.windSpeed == null
+          ? null
+          : units === "imperial"
+            ? Number(point.windSpeed) * 0.621371
+            : Number(point.windSpeed),
       formatTick: (value) => `${Math.round(value)}`,
-      formatValue: (value) => `${Math.round(value)}`,
+      formatValue: (value) =>
+        value == null ? "—" : `${Math.round(value)} ${units === "imperial" ? "mph" : "km/h"}`,
     },
   }[metric];
 
@@ -356,7 +366,7 @@ export function windCompass(direction, speed, gust, units, locale, translate) {
       <div><span>${escapeHtml(translate("details.gust"))}</span><strong>${escapeHtml(
         formatWindValue(gust, units, locale),
       )} <small>${units === "imperial" ? "mph" : "km/h"}</small></strong></div>
-      <div><span>Direction</span><strong>${Math.round(rotation)}°</strong></div>
+      <div><span>${escapeHtml(translate("data.direction"))}</span><strong>${Math.round(rotation)}°</strong></div>
     </div>
   </div>`;
 }
@@ -560,7 +570,7 @@ export function sunArc({ sunrise, sunset, nowMinutes, isDay, locale, translate }
   </div>`;
 }
 
-export function nowcastBars(nowcast, units, translate) {
+export function nowcastBars(nowcast, units, translate, locale = "en") {
   if (!nowcast.length) {
     return `<div class="nowcast-empty">${uiIcon("droplet", 18)}<span>${escapeHtml(
       translate("nowcast.noData"),
@@ -575,7 +585,7 @@ export function nowcastBars(nowcast, units, translate) {
       .map((point, index) => {
         const height = clamp((point.precipitation / max) * 100, point.precipitation > 0 ? 8 : 2, 100);
         return `<div class="nowcast-col">
-          <span class="nowcast-value">${point.precipitation > 0 ? escapeHtml(formatPrecip(point.precipitation, units, "en", 2)) : ""}</span>
+          <span class="nowcast-value">${point.precipitation > 0 ? escapeHtml(formatPrecip(point.precipitation, units, locale, 2)) : ""}</span>
           <span class="nowcast-bar" style="--h:${height}%;--delay:${index * 45}ms"></span>
           <span class="nowcast-time">${index === 0 ? escapeHtml(translate("common.now")) : escapeHtml(formatHour(point.time))}</span>
         </div>`;

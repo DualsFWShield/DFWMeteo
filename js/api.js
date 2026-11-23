@@ -90,6 +90,7 @@ export function placeFromUrl() {
 }
 
 export function writePlaceToUrl(place) {
+  const existing = new URLSearchParams(window.location.search);
   const params = new URLSearchParams();
   params.set("lat", Number(place.latitude).toFixed(4));
   params.set("lon", Number(place.longitude).toFixed(4));
@@ -97,6 +98,9 @@ export function writePlaceToUrl(place) {
   if (place.country) params.set("country", place.country);
   if (place.countryCode) params.set("countryCode", place.countryCode);
   if (place.admin1) params.set("admin1", place.admin1);
+  for (const key of ["theme", "lang", "radar"]) {
+    if (existing.has(key)) params.set(key, existing.get(key));
+  }
   const next = `${window.location.pathname}?${params.toString()}`;
   window.history.replaceState(null, "", next);
 }
