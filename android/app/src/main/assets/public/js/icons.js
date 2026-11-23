@@ -923,12 +923,8 @@ export function nothingWeatherDotGlyph(
     }
   }
 
-  const centerX = activeCells.length
-    ? activeCells.reduce((sum, cell) => sum + cell.x, 0) / activeCells.length
-    : (cols - 1) / 2;
-  const centerY = activeCells.length
-    ? activeCells.reduce((sum, cell) => sum + cell.y, 0) / activeCells.length
-    : (rows - 1) / 2;
+  const centerX = (cols - 1) / 2;
+  const centerY = (rows - 1) / 2;
   const maxDist = Math.max(
     1,
     ...activeCells.map((cell) => Math.hypot(cell.x - centerX, cell.y - centerY)),
@@ -939,9 +935,7 @@ export function nothingWeatherDotGlyph(
     const cy = y * step + 5;
     const dist = Math.hypot(x - centerX, y - centerY);
     const normDist = dist / maxDist;
-    const enterDelay = Math.round(normDist * 460);
-    const fromX = ((centerX - x) * step * 0.56).toFixed(1);
-    const fromY = ((centerY - y) * step * 0.56).toFixed(1);
+    const enterDelay = Math.round(normDist * 420);
 
     const isThunder = group === "thunder" || String(codeOrName).includes("thunder");
     const isRain =
@@ -962,28 +956,28 @@ export function nothingWeatherDotGlyph(
     const isPartly = group === "partly" || String(codeOrName).includes("partly");
 
     let roleClass = "ndot-cell--core";
-    let pulseDelay = Math.round(normDist * 1200 + ((x + y) % 4) * 140);
+    let pulseDelay = Math.round(normDist * 900);
 
     if (isThunder && y >= 6 && val === 1) {
       roleClass = "ndot-cell--bolt";
-      pulseDelay = (y - 6) * 110;
+      pulseDelay = (y - 6) * 90;
     } else if ((isRain || isThunder) && y >= 6 && (val === 2 || isRain)) {
       roleClass = "ndot-cell--drop";
-      pulseDelay = (y - 6) * 220 + (x % 4) * 110;
+      pulseDelay = (y - 6) * 260 + x * 40;
     } else if (isSnow && (y >= 6 || dist > 2.4)) {
       roleClass = "ndot-cell--flake";
-      pulseDelay = y * 160 + (x % 4) * 110;
+      pulseDelay = Math.round(normDist * 1100);
     } else if (isFog && y >= 4) {
       roleClass = "ndot-cell--fog";
-      pulseDelay = y * 150 + x * 45;
+      pulseDelay = x * 110 + (y % 2) * 350;
     } else if ((isClear && dist > 2.6) || (isPartly && ((isDay && y <= 5 && x <= 5 && dist > 1.8) || val === 2))) {
       roleClass = "ndot-cell--ray";
-      pulseDelay = ((x * 3 + y * 5) % 8) * 180;
+      pulseDelay = Math.round(normDist * 700);
     }
 
     const fill = val === 2 ? "#757575" : "#FFFFFF";
     const toneClass = val === 2 ? "ndot-dim" : "ndot-white";
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" class="${toneClass} ndot-cell ${roleClass}" style="--enter-delay:${enterDelay}ms;--pulse-delay:${pulseDelay}ms;--from-x:${fromX}px;--from-y:${fromY}px;transform-origin:${cx}px ${cy}px" />`;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" class="${toneClass} ndot-cell ${roleClass}" style="--enter-delay:${enterDelay}ms;--pulse-delay:${pulseDelay}ms" />`;
   });
 
   const w = cols * step;
